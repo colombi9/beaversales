@@ -3,956 +3,615 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🦫 비버웍스 영업본부 주간 대시보드</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>비버웍스 영업본부 매출 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
-  --p:#1a56db;--pl:#e8f0fe;--g:#0e9f6e;--gl:#d1fae5;
-  --r:#e02424;--rl:#fde8d8;--o:#ff5a1f;--ol:#fff3e0;
-  --y:#e3a008;--yl:#fef3c7;--pu:#7e3af2;--pul:#ede9fe;
-  --bg:#eef2f7;--card:#fff;--text:#1e2532;--muted:#6b7280;--border:#e5e7eb;
-  --sh:0 2px 12px rgba(0,0,0,.08);--sh2:0 8px 32px rgba(0,0,0,.13);
+  --blue:#2563eb;--bl:#eff6ff;--purple:#7c3aed;--pl:#f5f3ff;
+  --green:#059669;--gl:#ecfdf5;--orange:#d97706;--ol:#fffbeb;
+  --red:#dc2626;--rl:#fef2f2;--cyan:#0891b2;
+  --g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g400:#94a3b8;--g600:#475569;--g800:#1e293b;
+  --sh:0 1px 3px rgba(0,0,0,.08);--sh2:0 4px 12px rgba(0,0,0,.08);--r:12px;--r2:8px;
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--text)}
-
-/* ─ HEADER ─ */
-header{background:linear-gradient(135deg,#1a56db,#0d3fa6);color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh2);position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:12px}
-.logo-icon{width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
-header h1{font-size:17px;font-weight:700}
-header p{font-size:11px;opacity:.75;margin-top:1px}
-.hdr-r{display:flex;align-items:center;gap:10px}
-.update-info{background:rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600}
-.upload-btn{background:rgba(255,255,255,.25);border:1.5px solid rgba(255,255,255,.5);color:#fff;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
-.upload-btn:hover{background:rgba(255,255,255,.4)}
-.share-btn{background:#ff5a1f;border:none;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer}
-
-/* ─ TABS ─ */
-.tab-nav{background:#fff;padding:0 28px;display:flex;border-bottom:2px solid var(--border);overflow-x:auto;position:sticky;top:73px;z-index:99;box-shadow:0 2px 6px rgba(0,0,0,.06)}
-.tab-btn{padding:12px 16px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px}
-.tab-btn.active{color:var(--p);border-bottom-color:var(--p)}
-.tab-btn:hover{color:var(--p)}
-.tab-panel{display:none}.tab-panel.active{display:block}
-.db{padding:20px 28px;max-width:1600px;margin:0 auto}
-
-/* ─ UPLOAD ZONE ─ */
-.upload-zone{border:3px dashed #93c5fd;border-radius:20px;background:linear-gradient(135deg,#f0f7ff,#fff);padding:60px 40px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:20px}
-.upload-zone.dragover{border-color:var(--p);background:linear-gradient(135deg,#dbeafe,#eff6ff);transform:scale(1.01);box-shadow:var(--sh2)}
-.upload-zone.has-data{border-color:var(--g);background:linear-gradient(135deg,#f0fdf4,#fff)}
-.upload-icon{font-size:56px;margin-bottom:16px}
-.upload-title{font-size:20px;font-weight:800;color:var(--p);margin-bottom:8px}
-.upload-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
-.upload-cta{background:var(--p);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
-.upload-cta:hover{background:#1446b3;transform:translateY(-1px)}
-#fileInput{display:none}
-
-/* ─ KPI GRID ─ */
-.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
-.g2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:18px}
-.g2eq{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px}
-.mb{margin-bottom:18px}
-
-.kpi{background:var(--card);border-radius:12px;padding:16px 18px;box-shadow:var(--sh);border-left:4px solid}
-.kpi.blue{border-color:var(--p)}.kpi.green{border-color:var(--g)}.kpi.red{border-color:var(--r)}.kpi.orange{border-color:var(--o)}.kpi.yellow{border-color:var(--y)}.kpi.purple{border-color:var(--pu)}
-.kpi-icon{font-size:20px;margin-bottom:7px}
-.kpi-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-.kpi-val{font-size:20px;font-weight:800;margin:3px 0}
-.kpi-sub{font-size:10px;color:var(--muted)}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-top:4px}
-.bd-b{background:var(--pl);color:var(--p)}.bd-g{background:var(--gl);color:#065f46}.bd-r{background:var(--rl);color:#9b1c1c}.bd-y{background:var(--yl);color:#92400e}
-
-.card{background:var(--card);border-radius:12px;padding:18px;box-shadow:var(--sh)}
-.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
-.card-badge{font-size:10px;font-weight:700;background:var(--pl);color:var(--p);padding:2px 9px;border-radius:20px}
-.card-badge.g{background:var(--gl);color:var(--g)}.card-badge.r{background:var(--rl);color:var(--r)}.card-badge.y{background:var(--yl);color:var(--y)}
-.cw{position:relative;width:100%}
-.sec{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
-
-/* ─ TABLE ─ */
-.tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{background:#f8fafc;padding:8px 10px;text-align:left;font-weight:700;font-size:11px;color:var(--muted);border-bottom:2px solid var(--border)}
-.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-.tbl tr:hover td{background:#f8fafc}
-.tr{text-align:right;font-weight:600}
-.pb-wrap{display:flex;align-items:center;gap:5px}
-.pb-bg{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.pb-fill{height:100%;border-radius:3px}
-
-/* ─ EDITABLE PIPELINE BOARD ─ */
-.pipeline-board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
-.pipeline-col{background:var(--card);border-radius:12px;padding:14px;box-shadow:var(--sh);min-height:200px}
-.pipe-col-hdr{font-size:11px;font-weight:800;padding:6px 10px;border-radius:8px;margin-bottom:10px;text-align:center}
-.pc-done{background:var(--gl);color:#065f46}.pc-active{background:var(--pl);color:var(--p)}.pc-watch{background:var(--yl);color:#92400e}.pc-drop{background:#f3f4f6;color:#6b7280}
-.pipe-item{background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:8px;font-size:11px;border-left:3px solid;cursor:grab;transition:all .2s;position:relative}
-.pipe-item:hover{box-shadow:var(--sh);transform:translateY(-1px)}
-.pi-done{border-color:var(--g)}.pi-active{border-color:var(--p)}.pi-watch{border-color:var(--y)}.pi-drop{border-color:#9ca3af}
-.pi-name{font-weight:800;margin-bottom:3px;font-size:12px}
-.pi-size{font-size:10px;color:var(--muted);margin-bottom:4px}
-.pi-desc{font-size:10px;color:#374151;line-height:1.4}
-.pi-date{font-size:9px;color:var(--muted);margin-top:4px;font-weight:600}
-.pi-del{position:absolute;top:6px;right:6px;background:none;border:none;cursor:pointer;font-size:12px;color:#9ca3af;opacity:0}
-.pipe-item:hover .pi-del{opacity:1}
-.add-pipe-btn{width:100%;background:none;border:2px dashed var(--border);border-radius:8px;padding:8px;font-size:11px;color:var(--muted);cursor:pointer;font-weight:600;transition:all .2s}
-.add-pipe-btn:hover{border-color:var(--p);color:var(--p)}
-
-/* ─ CHECKLIST ─ */
-.checklist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;background:#f9fafb;border:1px solid var(--border)}
-.checklist-item.done{background:var(--gl);border-color:#a7f3d0;opacity:.7}
-.chk-cb{width:18px;height:18px;cursor:pointer;margin-top:1px;accent-color:var(--g);flex-shrink:0}
-.chk-text{font-size:12px;flex:1;line-height:1.4}
-.chk-text.done{text-decoration:line-through;color:var(--muted)}
-.chk-priority{font-size:9px;font-weight:800;padding:1px 6px;border-radius:10px;flex-shrink:0;margin-top:2px}
-.cp-urgent{background:#fee2e2;color:#dc2626}.cp-high{background:var(--yl);color:#92400e}.cp-normal{background:var(--pl);color:var(--p)}
-.add-check-btn{width:100%;background:none;border:2px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-weight:600;text-align:left;transition:all .2s}
-.add-check-btn:hover{border-color:var(--p);color:var(--p)}
-
-/* ─ SHARE GUIDE ─ */
-.share-method{background:var(--card);border-radius:12px;padding:20px;box-shadow:var(--sh);margin-bottom:14px;border-left:5px solid}
-.sm-1{border-color:var(--g)}.sm-2{border-color:var(--p)}.sm-3{border-color:var(--o)}.sm-4{border-color:var(--pu)}.sm-5{border-color:var(--y)}
-.sm-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.sm-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
-.sm-title{font-size:14px;font-weight:800}
-.sm-diff{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
-.diff-easy{background:var(--gl);color:#065f46}.diff-mid{background:var(--yl);color:#92400e}.diff-hard{background:var(--rl);color:#9b1c1c}
-.sm-body{font-size:12px;line-height:1.8;color:#374151}
-.sm-body b{color:var(--text)}
-.code-box{background:#1e2532;color:#e2e8f0;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;margin:8px 0;line-height:1.6;overflow-x:auto}
-.code-box .cmd{color:#86efac}.code-box .cmt{color:#64748b}
-.step-list{counter-reset:step}
-.step-list li{counter-increment:step;list-style:none;display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px}
-.step-list li::before{content:counter(step);min-width:20px;height:20px;background:var(--p);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;margin-top:1px}
-
-/* ─ MODAL ─ */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
-.modal-overlay.active{display:flex}
-.modal{background:#fff;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:var(--sh2)}
-.modal h3{font-size:16px;font-weight:800;margin-bottom:16px}
-.modal input,.modal textarea,.modal select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;margin-bottom:10px}
-.modal input:focus,.modal textarea:focus{outline:none;border-color:var(--p)}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
-.btn-cancel{background:#f3f4f6;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted)}
-.btn-save{background:var(--p);border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
-
-/* ─ WEEK SELECTOR ─ */
-.week-bar{background:var(--card);border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh);flex-wrap:wrap}
-.week-lbl{font-size:11px;font-weight:700;color:var(--muted)}
-.week-select{padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600}
-.week-status{display:flex;align-items:center;gap:6px;margin-left:auto}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--g)}
-.dot.red{background:var(--r)}
-.status-text{font-size:11px;font-weight:600;color:var(--muted)}
-.export-btn{background:var(--g);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer}
-.print-btn{background:#f3f4f6;border:none;color:var(--text);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer}
-
-/* ─ ALERT ─ */
-.alert-bar{background:linear-gradient(90deg,#fef2f2,#fee2e2);border-bottom:2px solid #f87171;padding:8px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.alert-item{background:#fff;border:1px solid #f87171;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#b91c1c}
-.alert-lbl{font-size:11px;font-weight:800;color:#dc2626}
-
-/* ─ RESPONSIVE ─ */
-@media(max-width:1100px){.g5{grid-template-columns:repeat(3,1fr)}.pipeline-board{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:768px){.db{padding:12px}.g2,.g2eq,.g3,.g4,.g5{grid-template-columns:1fr}.pipeline-board{grid-template-columns:1fr}}
-::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.card,.kpi{animation:fadeIn .3s ease}
-footer{text-align:center;padding:14px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',-apple-system,sans-serif;background:var(--g50);color:var(--g800);font-size:14px;line-height:1.5;}
+header{background:linear-gradient(135deg,#1e3a8a,#2563eb,#7c3aed);color:#fff;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(37,99,235,.4);}
+.ht{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.hs{font-size:11px;opacity:.75;margin-top:3px;}
+.hr{display:flex;gap:10px;align-items:center;}
+.hbadge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;}
+.hbtn{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);color:#fff;padding:8px 18px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;transition:.2s;}
+.hbtn:hover{background:rgba(255,255,255,.38);}
+.tabs{background:#fff;border-bottom:2px solid var(--g200);padding:0 32px;display:flex;position:sticky;top:0;z-index:100;box-shadow:var(--sh);overflow-x:auto;}
+.tab{padding:13px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--g600);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;white-space:nowrap;}
+.tab:hover{color:var(--blue);background:var(--bl);}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700;}
+.page{padding:24px 32px;max-width:1440px;margin:0 auto;}
+.panel{display:none;}.panel.active{display:block;}
+.st{font-size:15px;font-weight:700;margin-bottom:16px;}
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:24px;}
+.kpi{background:#fff;border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);border-left:4px solid var(--blue);}
+.kpi.g{border-left-color:var(--green);}.kpi.p{border-left-color:var(--purple);}
+.kpi.o{border-left-color:var(--orange);}.kpi.r{border-left-color:var(--red);}.kpi.c{border-left-color:var(--cyan);}
+.kl{font-size:11px;color:var(--g400);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.kv{font-size:24px;font-weight:800;margin:5px 0 3px;line-height:1.1;}
+.ki{font-size:11px;color:var(--g600);}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:18px;margin-bottom:22px;}
+.card{background:#fff;border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);}
+.card h3{font-size:13px;font-weight:700;margin-bottom:14px;}
+.cw{position:relative;height:250px;}.cw-lg{position:relative;height:330px;}.cw-xl{position:relative;height:400px;}
+.tw{background:#fff;border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);overflow-x:auto;margin-bottom:22px;}
+.tw h3{font-size:13px;font-weight:700;margin-bottom:14px;}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--g100);padding:9px 13px;text-align:left;font-size:11px;font-weight:700;color:var(--g600);white-space:nowrap;border-bottom:1px solid var(--g200);}
+td{padding:9px 13px;border-bottom:1px solid var(--g100);font-size:12px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}tr:hover td{background:var(--bl);}
+.rk{font-weight:800;color:var(--blue);}.rk.g1{color:#d97706;}.rk.g2{color:#64748b;}.rk.g3{color:#92400e;}
+.bw{display:flex;align-items:center;gap:6px;}
+.mb{height:5px;border-radius:3px;min-width:3px;}
+/* 인라인 바 그래프 */
+.ibar-wrap{width:200px;min-width:120px;}
+.ibar-track{position:relative;background:var(--g100);border-radius:6px;height:20px;overflow:visible;}
+.ibar-fill{position:absolute;left:0;top:0;height:100%;border-radius:6px;transition:width .4s ease;min-width:3px;}
+.ibar-label{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;white-space:nowrap;}
+.ibar-label.inside{color:#fff;}
+.ibar-label.outside{right:-44px;color:var(--g600);}
+.ibar-val{font-size:11px;color:var(--g400);margin-top:2px;text-align:right;}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+.tb{background:#dbeafe;color:#1d4ed8;}.tg{background:#d1fae5;color:#065f46;}
+.to{background:#ffedd5;color:#9a3412;}.tr{background:#fee2e2;color:#991b1b;}.tp{background:#ede9fe;color:#6d28d9;}
+/* Analysis */
+.agrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:22px;}
+.acard{background:#fff;border-radius:var(--r);padding:22px;box-shadow:var(--sh);}
+.acard.str{border-top:4px solid var(--green);}.acard.wkn{border-top:4px solid var(--red);}.acard.ins{border-top:4px solid var(--purple);}
+.acard h3{font-size:14px;font-weight:800;margin-bottom:16px;}
+.acard ul{list-style:none;}
+.acard li{padding:9px 0;border-bottom:1px solid var(--g100);display:flex;gap:10px;font-size:13px;line-height:1.6;}
+.acard li:last-child{border-bottom:none;}
+.ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.abar{background:linear-gradient(135deg,#1e3a8a,#7c3aed);border-radius:var(--r);padding:22px 32px;margin-top:20px;color:#fff;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center;}
+.abar-item .al{font-size:10px;opacity:.65;margin-bottom:4px;}
+.abar-item .av{font-size:28px;font-weight:900;line-height:1;}
+.abar-item .an{font-size:10px;opacity:.6;margin-top:3px;}
+.wkgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.wkcard{background:#fff;border-radius:var(--r2);padding:16px;box-shadow:var(--sh);text-align:center;}
+.wkcard .wn{font-size:11px;color:var(--g400);font-weight:600;}
+.wkcard .wv{font-size:18px;font-weight:800;margin:6px 0 4px;}
+.wkcard .wp{font-size:11px;color:var(--g600);}
+.drop{border:2px dashed var(--g200);border-radius:var(--r);padding:52px 24px;text-align:center;cursor:pointer;transition:.2s;background:#fff;box-shadow:var(--sh);}
+.drop:hover,.drop.over{border-color:var(--blue);background:var(--bl);}
+.drop .dicon{font-size:52px;margin-bottom:14px;}
+.drop h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.drop p{color:var(--g600);font-size:13px;}
+.upr{background:var(--gl);border:1px solid #a7f3d0;border-radius:var(--r2);padding:16px;margin-top:16px;align-items:center;gap:14px;display:none;}
 </style>
 </head>
 <body>
-
-<!-- ══ HEADER ══ -->
+ 
 <header>
-  <div class="logo">
-    <div class="logo-icon">🦫</div>
-    <div>
-      <h1>비버웍스 영업본부 주간 대시보드</h1>
-      <p>ERP Excel 업로드 시 자동 분석 · 주간 업데이트 시스템</p>
-    </div>
+  <div>
+    <div class="ht">🦫 비버웍스 영업본부 매출 대시보드</div>
+    <div class="hs" id="hSub">2026년 3월 매출현황 | 기준: 26년3월매출-영업본부-260331.xlsx</div>
   </div>
-  <div class="hdr-r">
-    <div class="update-info" id="lastUpdateBadge">📂 데이터 없음 — Excel 파일을 업로드하세요</div>
-    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📤 새 파일 업로드</button>
-    <button class="share-btn" onclick="switchTab('share',this)">🌐 공유하기</button>
-    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(this.files[0])">
+  <div class="hr">
+    <span class="hbadge" id="hBadge">3월 총 매출 7.77억원</span>
+    <label class="hbtn" for="fileIn">📤 새 데이터 업로드</label>
+    <input type="file" id="fileIn" accept=".xlsx,.xls" style="display:none">
   </div>
 </header>
-
-<!-- ══ 긴급 알림 ══ -->
-<div class="alert-bar" id="alertBar" style="display:none">
-  <span class="alert-lbl">🚨 긴급</span>
-  <div id="alertItems"></div>
+ 
+<div class="tabs">
+  <div class="tab active" onclick="go('summary')">📊 종합현황</div>
+  <div class="tab" onclick="go('daily')">📈 일별추이</div>
+  <div class="tab" onclick="go('person')">👤 사원별</div>
+  <div class="tab" onclick="go('solution')">🏷️ 솔루션/부서</div>
+  <div class="tab" onclick="go('customer')">🤝 거래처별</div>
+  <div class="tab" onclick="go('project')">📁 프로젝트별</div>
+  <div class="tab" onclick="go('analysis')">💡 시사점&분석</div>
+  <div class="tab" onclick="go('upload')">📤 업로드</div>
 </div>
-
-<!-- ══ TABS ══ -->
-<div class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('upload',this)">📤 데이터 업로드</button>
-  <button class="tab-btn" onclick="switchTab('overview',this)">📊 종합 현황</button>
-  <button class="tab-btn" onclick="switchTab('checklist',this)">✅ 주간 체크리스트</button>
-  <button class="tab-btn" onclick="switchTab('pipeline',this)">🎯 파이프라인</button>
-  <button class="tab-btn" onclick="switchTab('person',this)">👤 영업사원별</button>
-  <button class="tab-btn" onclick="switchTab('share',this)">🌐 공유 방법</button>
-</div>
-
-
-<!-- ════════════════════════ TAB: 업로드 ════════════════════════ -->
-<div id="tab-upload" class="tab-panel active"><div class="db">
-
-  <div class="upload-zone" id="dropZone"
-    ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"
-    onclick="document.getElementById('fileInput').click()">
-    <div class="upload-icon" id="uploadIcon">📊</div>
-    <div class="upload-title" id="uploadTitle">ERP 매출 Excel 파일을 여기에 드래그하세요</div>
-    <div class="upload-sub" id="uploadSub">
-      매달 ERP에서 다운로드한 <b>판매조회 Excel 파일</b>을 드래그&드롭하거나 클릭하여 업로드하세요.<br>
-      데이터가 자동으로 분석되어 대시보드 전체가 즉시 업데이트됩니다.<br>
-      <span style="color:#9ca3af;font-size:11px">지원 형식: .xlsx / .xls · 브라우저에서 직접 처리 (서버 전송 없음 · 보안 안전)</span>
-    </div>
-    <button class="upload-cta" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📁 파일 선택하기</button>
+ 
+<!-- 종합현황 -->
+<div id="p-summary" class="panel active"><div class="page">
+  <div class="krow">
+    <div class="kpi"><div class="kl">총 매출</div><div class="kv" id="k-tot">—</div><div class="ki" id="k-tot-s">—</div></div>
+    <div class="kpi g"><div class="kl">총 건수</div><div class="kv" id="k-cnt">—</div><div class="ki">건당 평균 <span id="k-avg">—</span></div></div>
+    <div class="kpi p"><div class="kl">1위 사원</div><div class="kv" id="k-p1">—</div><div class="ki" id="k-p1s">—</div></div>
+    <div class="kpi o"><div class="kl">1위 솔루션</div><div class="kv" id="k-s1">—</div><div class="ki" id="k-s1s">—</div></div>
+    <div class="kpi c"><div class="kl">1위 거래처</div><div class="kv" id="k-c1">—</div><div class="ki" id="k-c1s">—</div></div>
+    <div class="kpi r"><div class="kl">1위 부서</div><div class="kv" id="k-d1">—</div><div class="ki" id="k-d1s">—</div></div>
   </div>
-
-  <!-- 업로드 현황 카드 -->
-  <div class="g4">
-    <div class="card"><div class="card-hdr"><div class="card-title">📅 데이터 기간</div></div><div style="font-size:22px;font-weight:800;color:var(--p)" id="statPeriod">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px" id="statPeriodSub">파일 업로드 후 표시</div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">💰 총 매출</div></div><div style="font-size:22px;font-weight:800;color:var(--g)" id="statTotal">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px" id="statTotalSub">공급가액 합계</div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">📦 총 건수</div></div><div style="font-size:22px;font-weight:800;color:var(--o)" id="statCount">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px">ERP 등록 건수</div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">🕐 마지막 업로드</div></div><div style="font-size:14px;font-weight:700;color:var(--text)" id="statLastUpdate">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px" id="statFileName">파일명</div></div>
-  </div>
-
-  <!-- 사용법 안내 -->
-  <div class="g3">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">📋 매주 업데이트 방법</div></div>
-      <ol class="step-list">
-        <li>ERP 시스템에서 <b>판매조회</b> 메뉴 접속</li>
-        <li>기간 설정 후 <b>Excel 다운로드</b></li>
-        <li>이 페이지 상단 <b>"새 파일 업로드"</b> 버튼 클릭</li>
-        <li>다운로드한 Excel 파일 선택</li>
-        <li>대시보드 <b>자동 갱신 완료</b> ✅</li>
-      </ol>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">💡 자동 분석 항목</div></div>
-      <div style="font-size:12px;line-height:1.9;color:#374151">
-        ✅ 일별 매출 추이 차트<br>
-        ✅ 담당자별 매출 순위<br>
-        ✅ 부서/센터별 매출 분포<br>
-        ✅ 솔루션별 매출 비중<br>
-        ✅ 거래처 TOP 10<br>
-        ✅ 주간 KPI 자동 계산
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🔒 데이터 보안</div></div>
-      <div style="font-size:12px;line-height:1.9;color:#374151">
-        ✅ 파일이 서버로 <b>전송되지 않음</b><br>
-        ✅ 브라우저 내부에서만 처리<br>
-        ✅ 데이터가 이 컴퓨터에만 저장<br>
-        ✅ 인터넷 없이도 동작 가능<br>
-        ✅ 매출 데이터 외부 유출 없음
-      </div>
-    </div>
-  </div>
-
-</div></div>
-
-
-<!-- ════════════════════════ TAB: 종합 현황 ════════════════════════ -->
-<div id="tab-overview" class="tab-panel"><div class="db">
-
-  <div class="week-bar">
-    <span class="week-lbl">📅 기준 기간:</span>
-    <span id="periodDisplay" style="font-size:13px;font-weight:700;color:var(--p)">데이터 없음</span>
-    <div class="week-status" style="margin-left:auto">
-      <div class="dot" id="statusDot"></div>
-      <span class="status-text" id="statusText">대기 중</span>
-    </div>
-    <button class="print-btn" onclick="window.print()">🖨️ 인쇄</button>
-    <button class="export-btn" onclick="exportSummary()">📥 요약 저장</button>
-  </div>
-
-  <!-- KPI 5종 -->
-  <div class="g5">
-    <div class="kpi blue"><div class="kpi-icon">💰</div><div class="kpi-lbl">총 매출</div><div class="kpi-val" id="kTotalAmt">—</div><div class="kpi-sub" id="kTotalSub">공급가액 합계</div><span class="badge bd-b" id="kTotalBadge">업로드 필요</span></div>
-    <div class="kpi green"><div class="kpi-icon">📦</div><div class="kpi-lbl">총 건수</div><div class="kpi-val" id="kCount">—</div><div class="kpi-sub">ERP 등록 건수</div><span class="badge bd-g" id="kCountBadge">—</span></div>
-    <div class="kpi orange"><div class="kpi-icon">🧑‍💼</div><div class="kpi-lbl">활동 담당자</div><div class="kpi-val" id="kPersons">—</div><div class="kpi-sub">실적 발생 담당자 수</div><span class="badge bd-b">—</span></div>
-    <div class="kpi yellow"><div class="kpi-icon">📍</div><div class="kpi-lbl">건당 평균단가</div><div class="kpi-val" id="kAvg">—</div><div class="kpi-sub">매출 / 건수</div><span class="badge bd-y">—</span></div>
-    <div class="kpi purple"><div class="kpi-icon">🏆</div><div class="kpi-lbl">TOP 담당자</div><div class="kpi-val" id="kTop">—</div><div class="kpi-sub" id="kTopSub">—</div><span class="badge bd-b">1위</span></div>
-  </div>
-
-  <!-- 일별 매출 + 솔루션 -->
-  <div class="g2">
-    <div class="card"><div class="card-hdr"><div class="card-title">📈 일별 매출 추이</div><div class="card-badge" id="dailyBadge">—</div></div><div class="cw" style="height:260px"><canvas id="cDaily"></canvas></div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">🍩 솔루션별 비중</div></div><div class="cw" style="height:260px"><canvas id="cSol"></canvas></div></div>
-  </div>
-
-  <!-- 담당자별 + 센터별 -->
-  <div class="g2eq">
-    <div class="card"><div class="card-hdr"><div class="card-title">👤 담당자별 매출 TOP 10</div></div><div class="cw" style="height:260px"><canvas id="cPerson"></canvas></div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">📍 센터별 매출</div></div><div class="cw" style="height:260px"><canvas id="cCenter"></canvas></div></div>
-  </div>
-
-  <!-- 부서별 + 거래처 -->
-  <div class="g2eq">
-    <div class="card"><div class="card-hdr"><div class="card-title">🏢 부서별 매출</div></div><div class="cw" style="height:240px"><canvas id="cDept"></canvas></div></div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🏆 거래처 TOP 10</div></div>
-      <div style="overflow-x:auto"><table class="tbl" id="custTable">
-        <thead><tr><th>순위</th><th>거래처명</th><th class="tr">매출(원)</th><th style="min-width:100px">비중</th></tr></thead>
-        <tbody id="custTbody"></tbody>
-      </table></div>
-    </div>
-  </div>
-
-</div></div>
-
-
-<!-- ════════════════════════ TAB: 주간 체크리스트 ════════════════════════ -->
-<div id="tab-checklist" class="tab-panel"><div class="db">
-
-  <div class="week-bar">
-    <span class="week-lbl">📅 주간 체크리스트</span>
-    <span id="checkWeek" style="font-size:13px;font-weight:700;color:var(--p)"></span>
-    <div style="margin-left:auto;display:flex;gap:8px">
-      <span id="checkProgress" style="font-size:12px;font-weight:700;color:var(--g)"></span>
-      <button class="print-btn" onclick="addCheckItem()">+ 항목 추가</button>
-      <button class="export-btn" onclick="clearDoneItems()">완료항목 정리</button>
-    </div>
-  </div>
-
-  <div class="g2eq">
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🔴 긴급 처리 (이번 주)</div><div class="card-badge r" id="urgentCount">0건</div></div>
-      <div id="checklistUrgent"></div>
-      <button class="add-check-btn" onclick="addCheckItem('urgent')">+ 긴급 항목 추가</button>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-title">🟡 중요 (이번 주 내)</div><div class="card-badge y" id="highCount">0건</div></div>
-      <div id="checklistHigh"></div>
-      <button class="add-check-btn" onclick="addCheckItem('high')">+ 중요 항목 추가</button>
-    </div>
-  </div>
-  <div class="card mb">
-    <div class="card-hdr"><div class="card-title">🔵 일반 (이번 주 처리)</div><div class="card-badge" id="normalCount">0건</div></div>
-    <div id="checklistNormal"></div>
-    <button class="add-check-btn" onclick="addCheckItem('normal')">+ 일반 항목 추가</button>
-  </div>
-
-</div></div>
-
-
-<!-- ════════════════════════ TAB: 파이프라인 ════════════════════════ -->
-<div id="tab-pipeline" class="tab-panel"><div class="db">
-
-  <div class="week-bar">
-    <span class="week-lbl">🎯 영업 파이프라인 보드</span>
-    <span style="font-size:11px;color:var(--muted)">(카드를 수정하거나 새 딜을 추가하세요 — 자동 저장)</span>
-    <div style="margin-left:auto;display:flex;gap:8px">
-      <button class="print-btn" onclick="addPipeItem()">+ 딜 추가</button>
-      <button class="export-btn" onclick="exportPipeline()">📥 파이프라인 저장</button>
-    </div>
-  </div>
-
-  <!-- KPI -->
-  <div class="g4" style="margin-bottom:14px">
-    <div class="kpi green"><div class="kpi-icon">✅</div><div class="kpi-lbl">계약 완료</div><div class="kpi-val" id="pipeDone">0건</div></div>
-    <div class="kpi blue"><div class="kpi-icon">🔄</div><div class="kpi-lbl">협의 진행</div><div class="kpi-val" id="pipeActive">0건</div></div>
-    <div class="kpi yellow"><div class="kpi-icon">⚠️</div><div class="kpi-lbl">모니터링</div><div class="kpi-val" id="pipeWatch">0건</div></div>
-    <div class="kpi red"><div class="kpi-icon">❌</div><div class="kpi-lbl">Drop</div><div class="kpi-val" id="pipeDrop">0건</div></div>
-  </div>
-
-  <div class="pipeline-board">
-    <div class="pipeline-col"><div class="pipe-col-hdr pc-done">✅ 계약 완료</div><div id="col-done"></div><button class="add-pipe-btn" onclick="addPipeItem('done')">+ 추가</button></div>
-    <div class="pipeline-col"><div class="pipe-col-hdr pc-active">🔵 협의 진행중</div><div id="col-active"></div><button class="add-pipe-btn" onclick="addPipeItem('active')">+ 추가</button></div>
-    <div class="pipeline-col"><div class="pipe-col-hdr pc-watch">⚠️ 모니터링</div><div id="col-watch"></div><button class="add-pipe-btn" onclick="addPipeItem('watch')">+ 추가</button></div>
-    <div class="pipeline-col"><div class="pipe-col-hdr pc-drop">❌ Drop</div><div id="col-drop"></div><button class="add-pipe-btn" onclick="addPipeItem('drop')">+ 추가</button></div>
-  </div>
-
-</div></div>
-
-
-<!-- ════════════════════════ TAB: 영업사원별 ════════════════════════ -->
-<div id="tab-person" class="tab-panel"><div class="db">
-  <div class="card mb">
-    <div class="card-hdr"><div class="card-title">📋 전체 영업담당자 실적</div><div class="card-badge" id="personBadge">업로드 후 표시</div></div>
-    <div style="overflow-x:auto"><table class="tbl">
-      <thead><tr><th>순위</th><th>담당자</th><th>부서</th><th class="tr">건수</th><th class="tr">매출(원)</th><th class="tr">건당단가</th><th style="min-width:120px">실적바</th></tr></thead>
-      <tbody id="personTbody"></tbody>
-    </table></div>
+  <div class="wkgrid" id="wk-grid"></div>
+  <div class="cgrid">
+    <div class="card" style="grid-column:span 2"><h3>📈 일별 매출 추이</h3><div class="cw-lg"><canvas id="c-ds"></canvas></div></div>
+    <div class="card"><h3>🏷️ 솔루션별 비중</h3><div class="cw"><canvas id="c-ss"></canvas></div></div>
+    <div class="card"><h3>👤 사원별 Top5</h3><div class="cw"><canvas id="c-ps"></canvas></div></div>
   </div>
 </div></div>
-
-
-<!-- ════════════════════════ TAB: 공유 방법 ════════════════════════ -->
-<div id="tab-share" class="tab-panel"><div class="db">
-
-  <div class="card mb" style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:2px solid #93c5fd">
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="font-size:36px">💡</div>
-      <div>
-        <div style="font-size:15px;font-weight:800;margin-bottom:4px">직원들과 대시보드 공유하기</div>
-        <div style="font-size:12px;color:#374151;line-height:1.6">아래 5가지 방법 중 상황에 맞는 방법을 선택하세요. <b>방법 1 (가장 쉬움)</b>부터 시작하는 것을 추천합니다.</div>
-      </div>
+ 
+<!-- 일별추이 -->
+<div id="p-daily" class="panel"><div class="page">
+  <div class="st">📈 일별 매출 추이 (설치일 기준)</div>
+  <div class="card" style="margin-bottom:20px"><div class="cw-xl"><canvas id="c-daily"></canvas></div></div>
+  <div class="tw"><h3>일별 상세</h3>
+    <table><thead><tr><th>날짜</th><th>요일</th><th>매출금액</th><th>비율</th><th>누적</th><th>시각화</th></tr></thead>
+    <tbody id="tb-daily"></tbody></table></div>
+</div></div>
+ 
+<!-- 사원별 -->
+<div id="p-person" class="panel"><div class="page">
+  <div class="st">👤 영업사원별 매출 현황</div>
+  <div class="cgrid">
+    <div class="card" style="grid-column:span 2"><h3>💰 매출 금액 Top10</h3><div class="cw-lg"><canvas id="c-pb"></canvas></div></div>
+    <div class="card"><h3>📦 거래 건수 Top10</h3><div class="cw"><canvas id="c-pc"></canvas></div></div>
+    <div class="card"><h3>💎 건당 평균 단가</h3><div class="cw"><canvas id="c-pa"></canvas></div></div>
+  </div>
+  <div class="tw"><table><thead><tr><th>순위</th><th>사원명</th><th>매출금액</th><th>건수</th><th>건당평균</th><th style="min-width:230px">매출 비중</th></tr></thead>
+  <tbody id="tb-person"></tbody></table></div>
+</div></div>
+ 
+<!-- 솔루션/부서 -->
+<div id="p-solution" class="panel"><div class="page">
+  <div class="st">🏷️ 솔루션별 · 부서별 매출 현황</div>
+  <div class="cgrid">
+    <div class="card"><h3>🥧 솔루션별 비중</h3><div class="cw"><canvas id="c-sp"></canvas></div></div>
+    <div class="card"><h3>📊 솔루션별 매출</h3><div class="cw"><canvas id="c-sb"></canvas></div></div>
+    <div class="card" style="grid-column:span 2"><h3>🏢 부서별 매출</h3><div class="cw"><canvas id="c-db"></canvas></div></div>
+  </div>
+  <div class="tw"><h3>솔루션별 상세</h3>
+    <table><thead><tr><th>순위</th><th>솔루션명</th><th>매출금액</th><th style="min-width:230px">매출 비중</th></tr></thead>
+    <tbody id="tb-sol"></tbody></table></div>
+</div></div>
+ 
+<!-- 거래처별 -->
+<div id="p-customer" class="panel"><div class="page">
+  <div class="st">🤝 거래처별 매출 현황 (Top15)</div>
+  <div class="card" style="margin-bottom:20px"><h3>거래처별 매출</h3><div style="position:relative;height:480px"><canvas id="c-cb"></canvas></div></div>
+  <div class="tw"><table><thead><tr><th>순위</th><th>거래처명</th><th>매출금액</th><th style="min-width:230px">매출 비중</th></tr></thead>
+  <tbody id="tb-cust"></tbody></table></div>
+</div></div>
+ 
+<!-- 프로젝트별 -->
+<div id="p-project" class="panel"><div class="page">
+  <div class="st">📁 프로젝트별 매출 현황 (Top20)</div>
+  <div class="cgrid">
+    <div class="card" style="grid-column:span 2"><h3>프로젝트별 매출 Top15</h3><div style="position:relative;height:480px"><canvas id="c-pjb"></canvas></div></div>
+    <div class="card"><h3>프로젝트 규모 분포</h3><div class="cw"><canvas id="c-pjd"></canvas></div></div>
+  </div>
+  <div class="tw"><table><thead><tr><th>순위</th><th>프로젝트명</th><th>주요 거래처</th><th>매출금액</th><th>건수</th><th>건당평균</th><th style="min-width:230px">매출 비중</th></tr></thead>
+  <tbody id="tb-proj"></tbody></table></div>
+</div></div>
+ 
+<!-- 시사점&분석 (100% 동적 렌더링) -->
+<div id="p-analysis" class="panel"><div class="page">
+  <div class="st">💡 매출 시사점 및 전략 분석 <span id="analysis-period" style="font-size:13px;color:var(--g400);font-weight:400"></span></div>
+  <div class="agrid">
+    <div class="acard str">
+      <h3 style="color:var(--green)">✅ 잘한 부분 (Strengths)</h3>
+      <ul id="a-str"></ul>
+    </div>
+    <div class="acard wkn">
+      <h3 style="color:var(--red)">⚠️ 부족한 부분 (Weaknesses)</h3>
+      <ul id="a-wkn"></ul>
+    </div>
+    <div class="acard ins">
+      <h3 style="color:var(--purple)">🔮 시사점 및 전략 제언</h3>
+      <ul id="a-ins"></ul>
     </div>
   </div>
-
-  <div class="share-method sm-1">
-    <div class="sm-hdr">
-      <div class="sm-num" style="background:var(--g)">1</div>
-      <div>
-        <div class="sm-title">📁 파일 직접 공유 (가장 쉬움)</div>
-        <span class="sm-diff diff-easy">⭐ 난이도: 쉬움 · 추천</span>
-      </div>
-    </div>
-    <div class="sm-body">
-      <b>방법:</b> index.html 파일 하나를 이메일·카카오톡·네이버웍스로 전송<br>
-      <b>장점:</b> 별도 설정 없음, 수신자가 파일을 받아 Chrome으로 열면 바로 동작<br>
-      <b>단점:</b> 매주 업데이트된 파일을 다시 전송해야 함<br><br>
-      <ol class="step-list">
-        <li><code>C:\비버웍스\대시보드시스템\index.html</code> 파일을 카카오톡/이메일로 전송</li>
-        <li>수신자가 파일을 저장 후 <b>Chrome으로 열기</b></li>
-        <li>직원이 직접 ERP Excel 파일을 업로드하면 본인 화면에서 분석 가능</li>
-      </ol>
-    </div>
+  <div class="abar" id="a-bar"></div>
+</div></div>
+ 
+<!-- 업로드 -->
+<div id="p-upload" class="panel"><div class="page">
+  <div class="st">📤 ERP 데이터 업로드 (주간 갱신)</div>
+  <div class="drop" id="dz" onclick="document.getElementById('fileIn').click()">
+    <div class="dicon">📊</div>
+    <h3>ERP 판매조회 엑셀 파일을 여기에 드래그하거나 클릭</h3>
+    <p>지원: .xlsx · .xls &nbsp;|&nbsp; 필수 컬럼: <strong>사원(담당)명</strong>, <strong>공급가액합계</strong>, <strong>설치일자</strong></p>
   </div>
-
-  <div class="share-method sm-2">
-    <div class="sm-hdr">
-      <div class="sm-num" style="background:var(--p)">2</div>
-      <div>
-        <div class="sm-title">🖥️ 사내 네트워크 서버 (실시간 공유)</div>
-        <span class="sm-diff diff-mid">⭐⭐ 난이도: 보통 · 같은 WiFi 환경 필요</span>
-      </div>
-    </div>
-    <div class="sm-body">
-      <b>방법:</b> 영업본부장 PC에서 서버를 실행하면 같은 사내 WiFi의 모든 직원이 접속 가능<br>
-      <b>장점:</b> 링크 하나로 전체 공유, 실시간 업데이트, 추가 비용 없음<br>
-      <b>단점:</b> 서버 PC가 켜져 있어야 함, 같은 네트워크에서만 접속 가능<br><br>
-      <b>🚀 실행 방법:</b>
-      <div class="code-box">
-        <span class="cmt"># 방법A: 서버시작.bat 더블클릭 (이 폴더에 포함)</span><br>
-        <span class="cmt"># 방법B: 명령프롬프트에서 직접 실행</span><br>
-        <span class="cmd">cd C:\비버웍스\대시보드시스템</span><br>
-        <span class="cmd">python -m http.server 8080</span>
-      </div>
-      서버 실행 후 → 직원들에게 아래 주소 카톡으로 전송:<br>
-      <div class="code-box">
-        <span class="cmt"># 본인 PC IP 확인: 명령프롬프트에서 ipconfig 입력</span><br>
-        <span class="cmd">http://[본인PC_IP]:8080</span><br>
-        <span class="cmt"># 예: http://192.168.1.100:8080</span>
-      </div>
-    </div>
+  <div class="upr" id="upr">
+    <span style="font-size:28px">✅</span>
+    <div><strong id="upf"></strong><div style="color:var(--g600);font-size:12px;margin-top:2px" id="ups"></div></div>
   </div>
-
-  <div class="share-method sm-3">
-    <div class="sm-hdr">
-      <div class="sm-num" style="background:var(--o)">3</div>
-      <div>
-        <div class="sm-title">☁️ Netlify Drop (무료 웹 호스팅, 5분)</div>
-        <span class="sm-diff diff-mid">⭐⭐ 난이도: 보통 · 외부 접속 가능</span>
-      </div>
-    </div>
-    <div class="sm-body">
-      <b>방법:</b> Netlify 무료 서비스를 이용해 인터넷 어디서나 접속 가능한 URL 발급<br>
-      <b>장점:</b> 무료, 빠름, 외부 인터넷에서도 접속 가능 (재택근무자 포함)<br>
-      <b>단점:</b> 민감 데이터는 직원이 직접 업로드해야 함 (서버에 데이터 저장 안됨)<br><br>
-      <ol class="step-list">
-        <li>Chrome에서 <b>netlify.com/drop</b> 접속</li>
-        <li><code>C:\비버웍스\대시보드시스템</code> <b>폴더 전체</b>를 페이지로 드래그</li>
-        <li>자동으로 URL 발급 (예: <code>https://amazing-beaver.netlify.app</code>)</li>
-        <li>발급된 URL을 직원들에게 카카오톡으로 공유</li>
-        <li>매주 업데이트 시 같은 방법으로 재배포 (1분 소요)</li>
-      </ol>
-    </div>
-  </div>
-
-  <div class="share-method sm-4">
-    <div class="sm-hdr">
-      <div class="sm-num" style="background:var(--pu)">4</div>
-      <div>
-        <div class="sm-title">📂 구글 드라이브 / 네이버 클라우드 공유</div>
-        <span class="sm-diff diff-easy">⭐ 난이도: 쉬움</span>
-      </div>
-    </div>
-    <div class="sm-body">
-      <b>방법:</b> 드라이브에 파일 업로드 후 링크 공유 (직원이 다운로드 후 실행)<br><br>
-      <ol class="step-list">
-        <li>구글 드라이브 또는 네이버 클라우드 접속</li>
-        <li><code>index.html</code> 파일 업로드</li>
-        <li><b>공유 링크 생성</b> (링크가 있는 모든 사용자에게 공개)</li>
-        <li>링크를 단체 카톡방/이메일로 공유</li>
-        <li>직원이 링크에서 파일 다운로드 → Chrome으로 열기</li>
-      </ol>
-      <b>💡 팁:</b> 매주 같은 파일에 덮어쓰기 업로드하면 링크가 유지됩니다.
-    </div>
-  </div>
-
-  <div class="share-method sm-5">
-    <div class="sm-hdr">
-      <div class="sm-num" style="background:var(--y)">5</div>
-      <div>
-        <div class="sm-title">🐙 GitHub Pages (영구 URL, 개발자 추천)</div>
-        <span class="sm-diff diff-hard">⭐⭐⭐ 난이도: 어려움 · 가장 안정적</span>
-      </div>
-    </div>
-    <div class="sm-body">
-      <b>방법:</b> GitHub 무료 계정으로 고정 URL 발급 — 영구적으로 사용 가능<br>
-      <b>장점:</b> 무료, 고정 URL, 버전 관리, 매우 안정적<br><br>
-      <ol class="step-list">
-        <li>github.com 무료 가입</li>
-        <li>새 Repository 생성 (예: beaver-dashboard)</li>
-        <li>index.html 파일 업로드</li>
-        <li>Settings → Pages → Branch: main 선택 → Save</li>
-        <li>URL 자동 발급: <code>https://[계정명].github.io/beaver-dashboard</code></li>
-      </ol>
-    </div>
-  </div>
-
-  <!-- 권장 방법 비교표 -->
-  <div class="card">
-    <div class="card-hdr"><div class="card-title">📊 공유 방법 비교</div></div>
-    <div style="overflow-x:auto">
-    <table class="tbl">
-      <thead><tr><th>방법</th><th>난이도</th><th>비용</th><th>외부접속</th><th>실시간공유</th><th>추천 상황</th></tr></thead>
-      <tbody>
-        <tr><td><b>1. 파일 직접 공유</b></td><td>⭐ 쉬움</td><td>무료</td><td>✅</td><td>❌</td><td>빠른 공유, 소규모 팀</td></tr>
-        <tr><td><b>2. 사내 네트워크 서버</b></td><td>⭐⭐ 보통</td><td>무료</td><td>❌ 사내만</td><td>✅</td><td>사내 WiFi 환경, 실시간</td></tr>
-        <tr style="background:#f0fdf4"><td><b>3. Netlify Drop ⭐추천</b></td><td>⭐⭐ 보통</td><td>무료</td><td>✅</td><td>주간배포</td><td>재택+사무실 혼합 팀</td></tr>
-        <tr><td><b>4. 구글/네이버 드라이브</b></td><td>⭐ 쉬움</td><td>무료</td><td>✅</td><td>❌</td><td>이미 드라이브 사용 중</td></tr>
-        <tr><td><b>5. GitHub Pages</b></td><td>⭐⭐⭐ 어려움</td><td>무료</td><td>✅</td><td>주간배포</td><td>IT 담당자 있는 경우</td></tr>
-      </tbody>
+  <div class="card" style="margin-top:18px"><h3 style="margin-bottom:12px">📋 업로드 가이드</h3>
+    <table><tr><th style="width:140px">항목</th><th>내용</th></tr>
+      <tr><td>파일 형식</td><td>.xlsx 또는 .xls</td></tr>
+      <tr><td>필수 컬럼</td><td>설치일자, 사원(담당)명, 거래처명, 프로젝트명, 부서명, 솔루션명, 공급가액합계</td></tr>
+      <tr><td>헤더 위치</td><td>1~8행 어느 위치든 자동 감지</td></tr>
+      <tr><td>업로드 효과</td><td>차트 · 테이블 · <strong style="color:var(--purple)">시사점 분석 모두 자동 갱신</strong></td></tr>
     </table>
+    <div style="margin-top:14px;padding:12px;background:var(--bl);border-radius:var(--r2);font-size:13px;color:var(--blue)">
+      💡 새 파일을 업로드하면 <strong>시사점·분석 카드까지 자동으로 재계산</strong>됩니다. 브라우저에 저장되어 다음 방문 시에도 유지됩니다.
     </div>
   </div>
-
 </div></div>
-
-
-<!-- ══ 모달: 파이프라인 추가 ══ -->
-<div class="modal-overlay" id="pipeModal">
-  <div class="modal">
-    <h3>🎯 딜 추가/수정</h3>
-    <input id="mPipeName" placeholder="브랜드/업체명 *" />
-    <input id="mPipeSize" placeholder="규모 (예: 가맹점 500개)" />
-    <select id="mPipeStatus">
-      <option value="done">✅ 계약 완료</option>
-      <option value="active">🔵 협의 진행중</option>
-      <option value="watch">⚠️ 모니터링</option>
-      <option value="drop">❌ Drop</option>
-    </select>
-    <textarea id="mPipeDesc" placeholder="상세 내용" rows="3"></textarea>
-    <input id="mPipeDate" placeholder="다음 일정 (예: 4/16 제안설명회)" />
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closePipeModal()">취소</button>
-      <button class="btn-save" onclick="savePipeItem()">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ 모달: 체크리스트 추가 ══ -->
-<div class="modal-overlay" id="checkModal">
-  <div class="modal">
-    <h3>✅ 체크리스트 항목 추가</h3>
-    <input id="mCheckText" placeholder="내용 *" />
-    <select id="mCheckPriority">
-      <option value="urgent">🔴 긴급</option>
-      <option value="high">🟡 중요</option>
-      <option value="normal">🔵 일반</option>
-    </select>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeCheckModal()">취소</button>
-      <button class="btn-save" onclick="saveCheckItem()">저장</button>
-    </div>
-  </div>
-</div>
-
-
-<footer>🦫 비버웍스 영업본부 주간 대시보드 · Excel 업로드 시 자동 분석 · 데이터는 이 브라우저에만 저장됩니다</footer>
-
+ 
 <script>
-/* ═══════════════════════════════════
-   데이터 & 상태
-═══════════════════════════════════ */
-let DB = {rows:[], meta:{}, charts:{}};
-const C = ['#1a56db','#0e9f6e','#ff5a1f','#e3a008','#7e3af2','#0694a2','#f05252','#3f83f8','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
-
-function loadFromStorage(){
-  try{
-    const d=localStorage.getItem('beaver_dashboard');
-    if(d){ DB=JSON.parse(d); if(DB.rows&&DB.rows.length>0) renderAll(); }
-    loadPipeline(); loadChecklist();
-  }catch(e){}
+// ===== 기본 데이터 (26년3월매출-영업본부-260331.xlsx) =====
+const PRE = {
+  period:'2026년 3월', file:'26년3월매출-영업본부-260331.xlsx',
+  total:776512863, count:720,
+  daily:[['03/01',93434663],['03/03',43230000],['03/04',44220600],['03/05',29975000],['03/06',31610000],['03/07',650000],['03/08',300000],['03/09',23713000],['03/10',42077000],['03/11',43214000],['03/12',26462000],['03/13',16874000],['03/14',100000],['03/15',100000],['03/16',43315000],['03/17',19510000],['03/18',17604000],['03/19',20380000],['03/20',14379000],['03/21',3000000],['03/22',300000],['03/23',20157600],['03/24',25227000],['03/25',15854000],['03/26',45661000],['03/27',46315000],['03/28',720000],['03/29',300000],['03/30',28379000],['03/31',79451000]],
+  persons:[['문상현',211043000,180],['황가연',186800300,145],['김영훈',114104000,23],['심순혁',80351000,32],['나재희',45080000,26],['문성원',27997000,17],['이영훈',24254363,18],['진용민',23400000,4],['전규영',14530000,14],['전상화',13433000,41]],
+  solutions:[['비버 솔루션',297991363],['오더퀸 솔루션',257572000],['미분류',178266500],['우노스 솔루션',27263000],['기타 솔루션',15100000],['이마트24 솔루션',320000]],
+  depts:[['사업개발실',509282363],['전략영업팀',157274000],['New Acquisition팀',45080000],['성남센터',17865000],['운영팀',13191600],['남부영업센터',9630000],['리테일영업팀',7773300],['F&B영업팀',5020000]],
+  customers:[['에스케이쉴더스',99583300],['디에스아이시스템',87054000],['KG이니시스',72367000],['오케이포스',38360000],['비버페이',35860000],['키오컴퍼니',35170000],['아스템즈',32523000],['페이아이',23830000],['한국항공우주연구원',19800000],['아비꼬광화문점',18144000],['요잇당',17450000],['비즈니스솔루션',16400000],['제로스토어',15200000],['나이스정보통신',15000000],['푸디스트',14000000]],
+  projects:[['SK쉴더스',99483300,94,'에스케이쉴더스'],['사업개발실',88191000,83,'다수'],['더본코리아',84294000,14,'디에스아이시스템'],['키오컴퍼니(구.비원)',48620000,51,'비버페이'],['아스템즈',43023000,48,'드림하이테크'],['페이아이(구.퍼스트솔루션)',36663000,26,'페이아이'],['오케이포스',32910000,13,'오케이포스'],['비버웍스',29858600,214,'다수'],['에스케이브로드밴드',28224000,17,'비버페이'],['전략영업팀',27690000,16,'아크죠'],['새롬포스(구_포스뱅크)',25550000,4,'아비꼬'],['씨엘케이에프앤비(춘리마라탕)',20850000,12,'비버페이'],['요잇당',19500000,14,'요잇당'],['비즈니스솔류션',16400000,1,'비즈니스솔루션'],['나이스정보통신',15000000,4,'나이스정보통신']]
+};
+ 
+let D = (()=>{try{const s=localStorage.getItem('bbD4');return s?JSON.parse(s):PRE;}catch(e){return PRE;}})();
+ 
+const COLS=['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#65a30d','#c026d3','#ea580c','#0284c7'];
+const fmt=n=>n>=1e8?(n/1e8).toFixed(2)+'억':n>=1e7?(n/1e7).toFixed(1)+'천만':(n/1e4).toFixed(0)+'만';
+const fmtF=n=>n.toLocaleString()+'원';
+const pct=(n,t)=>(n/t*100).toFixed(1)+'%';
+let CH={};
+const dc=id=>{if(CH[id]){CH[id].destroy();delete CH[id];}};
+ 
+// 인라인 바 그래프 HTML 생성 함수
+function ibar(val, maxVal, total, colorIdx=0, customColor=null){
+  const ICOLORS=['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#65a30d','#c026d3'];
+  const color = customColor || ICOLORS[colorIdx % ICOLORS.length];
+  const fillPct = Math.min((val/maxVal)*100, 100);
+  const sharePct = (val/total*100).toFixed(1);
+  const isWide = fillPct > 30;
+  return `<div class="ibar-wrap">
+    <div class="ibar-track">
+      <div class="ibar-fill" style="width:${fillPct.toFixed(1)}%;background:${color}"></div>
+      <span class="ibar-label ${isWide?'inside':'outside'}" style="${!isWide?'color:'+color:''}">
+        ${sharePct}%
+      </span>
+    </div>
+    <div class="ibar-val">${fmt(val)}</div>
+  </div>`;
 }
-
-function saveToStorage(){
-  try{ localStorage.setItem('beaver_dashboard',JSON.stringify(DB)); }catch(e){}
+ 
+Chart.register(ChartDataLabels);
+ 
+function bar(id,labels,data,horiz=false,cols=null){
+  dc(id);const el=document.getElementById(id);if(!el)return;
+  const tot=data.reduce((a,b)=>a+b,0);
+  const maxV=Math.max(...data);
+  // 수평 막대(horiz=true): y=이름축, x=금액축 / 수직 막대(horiz=false): x=이름축, y=금액축
+  // 이름 축: callback 없음 → Chart.js가 labels[] 자동 표시
+  // 금액 축: fmt() callback으로 숫자 포맷
+  const nameTick = horiz
+    ? {font:{size:10}, autoSkip:false}                     // 수평: y축 → 이름 (전부 표시)
+    : {font:{size:10}, maxRotation:30, autoSkip:false};    // 수직: x축 → 이름
+  const valTick = {font:{size:10}, callback:v=>fmt(v)};
+ 
+  CH[id]=new Chart(el,{type:'bar',
+    data:{labels, datasets:[{data,
+      backgroundColor:cols||(horiz?COLS:data.map((_,i)=>COLS[i%COLS.length])),
+      borderRadius:4}]},
+    options:{indexAxis:horiz?'y':'x', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+fmtF(c.raw)}},
+        datalabels:{
+          color:'#fff', anchor:'end', align:'start', clamp:true,
+          formatter:v=>fmt(v), font:{size:10,weight:'bold'},
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > (maxV*0.08)
+        }
+      },
+      layout:{padding:{left: horiz ? 4 : 0}},
+      scales:{
+        x:{grid:{display:false},   ticks: horiz ? valTick : nameTick},
+        y:{grid:{color:'#f1f5f9'}, ticks: horiz ? nameTick : valTick,
+           afterFit: horiz ? (axis=>{axis.width=Math.max(axis.width,130);}) : undefined}
+      }
+    }
+  });
 }
-
-function fmt(n){if(!n&&n!==0)return'—';if(n>=100000000)return(n/100000000).toFixed(1)+'억';if(n>=10000000)return(n/10000000).toFixed(0)+'천만';if(n>=10000)return(n/10000).toFixed(0)+'만';return n.toLocaleString()}
-function fmtNum(n){return n?n.toLocaleString():'0'}
-
-/* ═══════════════════════════════════
-   TABS
-═══════════════════════════════════ */
-function switchTab(id, btn){
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  if(btn) btn.classList.add('active');
-  else document.querySelectorAll('.tab-btn').forEach(b=>{ if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active'); });
+function donut(id,labels,data){
+  dc(id);const el=document.getElementById(id);if(!el)return;
+  const tot=data.reduce((a,b)=>a+b,0);
+  CH[id]=new Chart(el,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:COLS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:10,padding:7}},
+        tooltip:{callbacks:{label:c=>' '+fmt(c.raw)+' ('+pct(c.raw,tot)+')'}},
+        datalabels:{
+          color:'#fff',
+          font:{size:10,weight:'bold'},
+          formatter:(v,ctx)=>{
+            const p=(v/tot*100).toFixed(0);
+            return p>6?p+'%':'';
+          }
+        }
+      }}});
 }
-
-/* ═══════════════════════════════════
-   파일 업로드 / 파싱
-═══════════════════════════════════ */
-function handleDragOver(e){ e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
-function handleDragLeave(){ document.getElementById('dropZone').classList.remove('dragover'); }
-function handleDrop(e){
-  e.preventDefault(); handleDragLeave();
-  const file=e.dataTransfer.files[0];
-  if(file) processFile(file);
+function line(id,labels,data){
+  dc(id);const el=document.getElementById(id);if(!el)return;
+  const maxV=Math.max(...data);
+  CH[id]=new Chart(el,{type:'line',data:{labels,datasets:[{data,fill:true,
+    backgroundColor:'rgba(37,99,235,.07)',borderColor:'#2563eb',
+    pointBackgroundColor:data.map(v=>v<1000000?'#dc2626':'#2563eb'),
+    pointRadius:4,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+fmtF(c.raw)}},
+        datalabels:{
+          display: ctx => ctx.dataset.data[ctx.dataIndex] >= maxV*0.55,
+          color:'#1e40af',
+          anchor:'end',align:'top',
+          font:{size:9,weight:'bold'},
+          formatter:v=>fmt(v)
+        }
+      },
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},callback:v=>fmt(v)}}}}});
 }
-function handleFileSelect(file){ if(file) processFile(file); }
-
-function processFile(file){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      const data=new Uint8Array(e.target.result);
-      const wb=XLSX.read(data,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-      parseERP(raw, file.name);
-    }catch(err){ alert('파일 파싱 오류: '+err.message); }
-  };
-  reader.readAsArrayBuffer(file);
+ 
+// ===== 시사점 동적 생성 엔진 =====
+function generateAnalysis(d){
+  const tot=d.total, cnt=d.count;
+  const avg=Math.round(tot/cnt);
+ 
+  // 계산 지표
+  const top2Amt=d.persons.slice(0,2).reduce((s,p)=>s+p[1],0);
+  const top2Pct=(top2Amt/tot*100).toFixed(1);
+  const top2SolAmt=d.solutions.slice(0,2).reduce((s,x)=>s+x[1],0);
+  const top2SolPct=(top2SolAmt/tot*100).toFixed(1);
+  const top3CustAmt=d.customers.slice(0,3).reduce((s,x)=>s+x[1],0);
+  const top3CustPct=(top3CustAmt/tot*100).toFixed(1);
+  const top1DeptPct=(d.depts[0][1]/tot*100).toFixed(1);
+  const maxDay=d.daily.reduce((a,b)=>a[1]>b[1]?a:b);
+  const minDay=d.daily.reduce((a,b)=>a[1]<b[1]?a:b);
+  const lowDays=d.daily.filter(x=>x[1]<1000000).length;
+ 
+  const uncl=d.solutions.find(x=>x[0]==='미분류'||x[0].includes('미분류')||x[0].includes('기타(미분류)'));
+  const unclAmt=uncl?uncl[1]:0;
+  const unclPct=(unclAmt/tot*100).toFixed(1);
+ 
+  const lowestSol=d.solutions[d.solutions.length-1];
+ 
+  // 주차별 분석
+  const wk=(from,to)=>d.daily.filter(x=>{const v=parseInt(x[0].split('/')[1]||x[0].split('-')[1]);return v>=from&&v<=to;}).reduce((s,x)=>s+x[1],0);
+  const w1=wk(1,7),w2=wk(8,14),w3=wk(15,21),w4=wk(22,31);
+  const midPct=((w2+w3)/tot*100).toFixed(1);
+ 
+  // 다건/저단가 사원 찾기 (건수 10건 이상 + 건당 평균 하위)
+  const multiLow=d.persons.filter(p=>p[2]>=10).sort((a,b)=>(a[1]/a[2])-(b[1]/b[2]))[0];
+ 
+  // 잘한 부분
+  const strengths=[
+    {ico:'💰',t:`총 매출 ${fmt(tot)} 달성 · ${cnt}건`,d:`건당 평균 단가 ${fmt(avg)}. 일평균 약 ${fmt(Math.round(tot/d.daily.length))} 수준으로 안정적 매출 흐름 유지.`},
+    {ico:'🏆',t:`${d.persons[0][0]}·${d.persons[1][0]} 핵심 사원 ${top2Pct}% 기여`,d:`${d.persons[0][0]}(${fmt(d.persons[0][1])}·${d.persons[0][2]}건), ${d.persons[1][0]}(${fmt(d.persons[1][1])}·${d.persons[1][2]}건). 안정적인 Core 세일즈 포스 확인.`},
+    {ico:'🔑',t:`${d.solutions[0][0]}·${d.solutions[1][0]}이 ${top2SolPct}% 기여`,d:`핵심 솔루션 2종이 총 ${fmt(top2SolAmt)}을 담당. 제품 포트폴리오 집중 전략 성과 확인.`},
+    {ico:'🏢',t:`대형 거래처 Top3가 전체 ${top3CustPct}% 기여`,d:`${d.customers[0][0].slice(0,8)}(${fmt(d.customers[0][1])}), ${d.customers[1][0].slice(0,8)}(${fmt(d.customers[1][1])}), ${d.customers[2][0].slice(0,8)}(${fmt(d.customers[2][1])}) 안정적 확보.`},
+    {ico:'📅',t:`최고 매출일 ${maxDay[0]} 단일 ${fmt(maxDay[1])} 달성`,d:`월 누적 목표 달성에 핵심 기여. 1주차 ${fmt(w1)}(${(w1/tot*100).toFixed(0)}%) + 4주차 ${fmt(w4)}(${(w4/tot*100).toFixed(0)}%) 집중 스퍼트 성공.`},
+    {ico:'🏛️',t:`${d.depts[0][0]}이 전체 ${top1DeptPct}% 견인`,d:`부서별 집중도 확인. 핵심 부서 중심의 영업 체계가 매출 안정성 뒷받침.`},
+  ];
+ 
+  // 부족한 부분 (데이터 기반 조건부 생성)
+  const weaknesses=[];
+  if(parseFloat(top2Pct)>=45) weaknesses.push({ico:'📉',t:`상위 2인 의존도 ${top2Pct}% — 편중 위험`,d:`나머지 ${d.persons.length-2}명 평균 매출 ${fmt(Math.round((tot-top2Amt)/Math.max(d.persons.length-2,1)))}. 핵심 사원 이탈·부재 시 매출 급락 리스크 높음.`});
+  if(parseFloat(unclPct)>=10) weaknesses.push({ico:'❓',t:`미분류 솔루션 ${unclPct}% (${fmt(unclAmt)}) — 데이터 오염`,d:`솔루션명 미입력 건이 전체 ${unclPct}%. 정확한 솔루션별 전략 수립 불가. 즉각적인 데이터 정비 필요.`});
+  weaknesses.push({ico:'😴',t:`${lowestSol[0]} 매출 ${fmtF(lowestSol[1])} — 최저 솔루션`,d:`해당 솔루션의 거래 건수·금액이 현저히 낮음. 영업 전략 점검 및 개선 방안 수립 필요.`});
+  if(lowDays>=3) weaknesses.push({ico:'📅',t:`매출 공백일 ${lowDays}일 발생`,d:`100만원 미만 매출일 ${lowDays}건. 최저 매출일: ${minDay[0]}(${fmtF(minDay[1])}). 균등 파이프라인 배분으로 공백 해소 필요.`});
+  if(parseFloat(midPct)<35) weaknesses.push({ico:'📊',t:`2·3주차(중순) 매출 ${midPct}% — 월초·말 편중`,d:`2주차 ${fmt(w2)}, 3주차 ${fmt(w3)}으로 전체의 ${midPct}%에 불과. 월 중순 파이프라인 강화 시급.`});
+  if(multiLow) weaknesses.push({ico:'🔢',t:`${multiLow[0]} ${multiLow[2]}건인데 건당 ${fmt(Math.round(multiLow[1]/multiLow[2]))} — 업셀링 필요`,d:`다건 활동 대비 건당 단가 낮음. 소액 단건 위주 영업 패턴 개선 및 번들 제안 전략 필요.`});
+ 
+  // 시사점 (조건부 자동 생성)
+  const insights=[];
+  const numStr=['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣'];
+  let ni=0;
+  const mid3Names=d.persons.slice(2,5).map(p=>p[0]).join('·');
+  insights.push({ico:numStr[ni++],t:'중위권 사원 집중 육성',d:`${mid3Names} 등 중위권 사원 타깃 월간 코칭 플랜 수립. 개인별 목표 설정 후 주간 단위 점검.`});
+  if(parseFloat(unclPct)>=10) insights.push({ico:numStr[ni++],t:'ERP 솔루션명 입력 필수화',d:`미분류 ${unclPct}% 건 즉시 소급 정리. 미입력 시 정산 보류 방침 도입 또는 주간 알림 시스템 구축.`});
+  insights.push({ico:numStr[ni++],t:`${lowestSol[0]} 전략 재검토`,d:`최저 매출 솔루션 영업 채널·타깃 재분석. 3개월 내 가시적 성과 없을 경우 피벗 여부 결정.`});
+  if(lowDays>=3) insights.push({ico:numStr[ni++],t:'주차별 파이프라인 균등 배분',d:`공백일 해소를 위해 각 주차 목표 매출(${fmt(Math.round(tot/4))})을 설정하고 딜 배분 루틴 수립.`});
+  if(parseFloat(top3CustPct)>=28) insights.push({ico:numStr[ni++],t:`거래처 다각화 — Top3 ${top3CustPct}% 집중도 축소`,d:`신규 중견 거래처 월 3개 이상 개척 목표. Top3 의존도를 분기 내 25% 이하로 낮추는 전략 로드맵 필요.`});
+  if(multiLow) insights.push({ico:numStr[ni++],t:'건당 단가 업셀링 교육',d:`다건·저단가 패턴 사원 대상 번들 제안·업셀링 영업 방법론 교육. 월 1회 워크숍 운영 권고.`});
+ 
+  // 요약 배너
+  const banner=[
+    {l:'상위2인 의존도',v:top2Pct+'%',n:parseFloat(top2Pct)>=50?'⚠️ 목표: 40% 이하':'✅ 양호'},
+    {l:'미분류 솔루션',v:unclPct+'%',n:parseFloat(unclPct)>=10?'⚠️ 즉시 정비 필요':'✅ 양호'},
+    {l:'Top3 거래처 집중도',v:top3CustPct+'%',n:parseFloat(top3CustPct)>=30?'⚠️ 25% 이하 목표':'✅ 양호'},
+    {l:'중순(2~3주) 매출비중',v:midPct+'%',n:parseFloat(midPct)<35?'⚠️ 40% 이상 목표':'✅ 양호'},
+  ];
+  return {strengths,weaknesses,insights,banner,period:d.period||''};
 }
-
-function parseERP(raw, fileName){
-  // 헤더 행 찾기
-  let headerRow=-1;
-  for(let i=0;i<Math.min(10,raw.length);i++){
-    if(raw[i]&&raw[i].includes&&raw[i].some&&raw[i].some(v=>v==='사원(담당)명'||v==='공급가액합계')){ headerRow=i; break; }
-  }
-  if(headerRow<0){ alert('ERP 판매조회 형식의 파일을 업로드해주세요.'); return; }
-
-  const headers=raw[headerRow];
-  const idxMap={};
-  const colNames=['설치일자','사원(담당)명','거래처명','프로젝트명','부서명','솔루션명','창고명','품목명(요약)','공급가액합계','수량','진행상태'];
-  colNames.forEach(n=>{ const i=headers.indexOf(n); if(i>=0) idxMap[n]=i; });
-
-  const rows=[];
-  for(let r=headerRow+1;r<raw.length;r++){
-    const row=raw[r]; if(!row||!row.some(v=>v!=null)) continue;
-    const obj={};
-    colNames.forEach(n=>{ obj[n]=idxMap[n]!==undefined?row[idxMap[n]]:null; });
-    // 날짜 파싱: '2026/03/31 -13' → '2026/03/31'
-    if(obj['설치일자']&&typeof obj['설치일자']==='string') obj['설치일자']=obj['설치일자'].split(' ')[0];
-    if(obj['공급가액합계']&&typeof obj['공급가액합계']==='string') obj['공급가액합계']=parseFloat(obj['공급가액합계'].replace(/,/g,''))||0;
-    rows.push(obj);
-  }
-
-  const now=new Date().toLocaleString('ko-KR');
-  DB={rows, meta:{fileName, uploadTime:now, rowCount:rows.length}, charts:{}};
-  saveToStorage();
-  renderAll();
-  updateUploadUI(fileName);
-  switchTab('overview', null);
+ 
+function renderAnalysis(){
+  const a=generateAnalysis(D);
+  document.getElementById('analysis-period').textContent='— '+a.period;
+  const li=arr=>arr.map(x=>`<li><span class="ico">${x.ico}</span><div><strong>${x.t}</strong><br>${x.d}</div></li>`).join('');
+  document.getElementById('a-str').innerHTML=li(a.strengths);
+  document.getElementById('a-wkn').innerHTML=li(a.weaknesses);
+  document.getElementById('a-ins').innerHTML=li(a.insights);
+  document.getElementById('a-bar').innerHTML=a.banner.map(b=>`
+    <div class="abar-item"><div class="al">${b.l}</div><div class="av">${b.v}</div><div class="an">${b.n}</div></div>`).join('');
 }
-
-function updateUploadUI(fileName){
-  const total=DB.rows.reduce((s,r)=>s+(r['공급가액합계']||0),0);
-  const cnt=DB.rows.length;
-  // 날짜 범위
-  const dates=DB.rows.map(r=>r['설치일자']).filter(Boolean).sort();
-  const period=dates.length>0?`${dates[0].slice(0,7).replace('/','.').replace('2026/','2026년 ')} 기간`:'—';
-
-  document.getElementById('statPeriod').textContent=period;
-  document.getElementById('statPeriodSub').textContent=dates.length>0?`${dates[0]} ~ ${dates[dates.length-1]}`:'—';
-  document.getElementById('statTotal').textContent=fmt(total);
-  document.getElementById('statTotalSub').textContent=fmtNum(total)+'원';
-  document.getElementById('statCount').textContent=fmtNum(cnt)+'건';
-  document.getElementById('statLastUpdate').textContent=DB.meta.uploadTime;
-  document.getElementById('statFileName').textContent=fileName;
-  document.getElementById('lastUpdateBadge').textContent='✅ '+fileName+' ('+DB.meta.uploadTime+')';
-
-  const dz=document.getElementById('dropZone');
-  dz.classList.add('has-data');
-  document.getElementById('uploadIcon').textContent='✅';
-  document.getElementById('uploadTitle').textContent='데이터 로드 완료 — '+fmtNum(cnt)+'건 / '+fmt(total);
-  document.getElementById('uploadSub').innerHTML='<b>'+fileName+'</b>이 성공적으로 분석되었습니다.<br>새 주간 파일을 업로드하면 대시보드가 즉시 갱신됩니다.';
-}
-
-/* ═══════════════════════════════════
-   차트 렌더링
-═══════════════════════════════════ */
-function destroyChart(id){ if(DB.charts[id]){ DB.charts[id].destroy(); delete DB.charts[id]; } }
-function makeChart(id, type, data, opts){
-  destroyChart(id);
-  const ctx=document.getElementById(id);
-  if(!ctx) return;
-  DB.charts[id]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,...opts}});
-}
-
+ 
 function renderAll(){
-  if(!DB.rows||DB.rows.length===0) return;
-  const rows=DB.rows;
-  const total=rows.reduce((s,r)=>s+(r['공급가액합계']||0),0);
-  const cnt=rows.length;
-  const dates=rows.map(r=>r['설치일자']).filter(Boolean).sort();
-  const period=dates.length>0?dates[0]+' ~ '+dates[dates.length-1]:'—';
-
+  const d=D, tot=d.total;
+  // Header
+  document.getElementById('hBadge').textContent=(d.period||'')+'  총 매출 '+fmt(tot)+'원';
+  document.getElementById('hSub').textContent=(d.period||'')+'  매출현황 | 기준: '+(d.file||'업로드 파일');
   // KPI
-  document.getElementById('kTotalAmt').textContent=fmt(total);
-  document.getElementById('kTotalSub').textContent=fmtNum(total)+'원';
-  document.getElementById('kTotalBadge').textContent=period;
-  document.getElementById('kCount').textContent=fmtNum(cnt)+'건';
-  document.getElementById('kCountBadge').textContent=cnt+'건 등록';
-  document.getElementById('periodDisplay').textContent=period;
-  document.getElementById('statusDot').className='dot';
-  document.getElementById('statusText').textContent='데이터 로드됨';
-
-  // 담당자별
-  const personMap={};
-  rows.forEach(r=>{ const n=r['사원(담당)명']; if(!n)return; if(!personMap[n])personMap[n]={amt:0,cnt:0,dept:r['부서명']}; personMap[n].amt+=r['공급가액합계']||0; personMap[n].cnt++; });
-  const persons=Object.entries(personMap).sort((a,b)=>b[1].amt-a[1].amt);
-  document.getElementById('kPersons').textContent=persons.length+'명';
-  if(persons.length>0){ document.getElementById('kTop').textContent=persons[0][0]; document.getElementById('kTopSub').textContent=fmt(persons[0][1].amt)+' / '+persons[0][1].cnt+'건'; }
-
-  const avg=cnt>0?Math.round(total/cnt):0;
-  document.getElementById('kAvg').textContent=fmt(avg);
-  document.getElementById('personBadge').textContent=persons.length+'명';
-
-  // 일별
-  const dayMap={};
-  rows.forEach(r=>{ const d=r['설치일자']; if(!d)return; const a=r['공급가액합계']||0; dayMap[d]=(dayMap[d]||0)+a; });
-  const sortedDays=Object.keys(dayMap).sort();
-  let cum=0; const cumArr=sortedDays.map(d=>{ cum+=dayMap[d]; return cum; });
-  const dayLabels=sortedDays.map(d=>d.slice(5));
-  document.getElementById('dailyBadge').textContent=sortedDays.length+'일';
-
-  makeChart('cDaily','bar',{labels:dayLabels,datasets:[
-    {label:'일별매출',data:sortedDays.map(d=>dayMap[d]),backgroundColor:sortedDays.map(d=>dayMap[d]>(total/sortedDays.length*1.5)?'#1a56db':'#93c5fd'),borderRadius:4,order:2,yAxisID:'y'},
-    {label:'누적',data:cumArr,type:'line',borderColor:'#ff5a1f',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:.4,order:1,yAxisID:'y2'}
-  ]},{plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:9}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtNum(c.raw)+'원'}}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'#f3f4f6'},ticks:{callback:v=>fmt(v),font:{size:9}}},y2:{position:'right',grid:{display:false},ticks:{callback:v=>fmt(v),font:{size:9}}}}});
-
-  // 솔루션별
-  const solMap={};
-  rows.forEach(r=>{ const s=r['솔루션명']||'미분류'; const a=r['공급가액합계']||0; if(a>0) solMap[s]=(solMap[s]||0)+a; });
-  const solSorted=Object.entries(solMap).sort((a,b)=>b[1]-a[1]);
-  makeChart('cSol','doughnut',{labels:solSorted.map(e=>e[0]),datasets:[{data:solSorted.map(e=>e[1]),backgroundColor:C,borderWidth:2,borderColor:'#fff'}]},{cutout:'60%',plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:c=>c.label+': '+fmtNum(c.raw)+'원'}}}});
-
-  // 담당자 TOP10
-  const top10=persons.slice(0,10);
-  makeChart('cPerson','bar',{labels:top10.map(e=>e[0]),datasets:[{data:top10.map(e=>e[1].amt),backgroundColor:C,borderRadius:5}]},{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtNum(c.raw)+'원'}}},scales:{x:{ticks:{callback:v=>fmt(v),font:{size:9}},grid:{color:'#f3f4f6'}},y:{grid:{display:false},ticks:{font:{size:10}}}}});
-
-  // 센터별 (창고명)
-  const ctrMap={};
-  rows.forEach(r=>{ const c=r['창고명']; if(!c)return; const a=r['공급가액합계']||0; if(a>0) ctrMap[c]=(ctrMap[c]||0)+a; });
-  const ctrSorted=Object.entries(ctrMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  makeChart('cCenter','bar',{labels:ctrSorted.map(e=>e[0]),datasets:[{data:ctrSorted.map(e=>e[1]),backgroundColor:C,borderRadius:5}]},{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtNum(c.raw)+'원'}}},scales:{x:{ticks:{callback:v=>fmt(v),font:{size:9}},grid:{color:'#f3f4f6'}},y:{grid:{display:false},ticks:{font:{size:10}}}}});
-
-  // 부서별
-  const deptMap={};
-  rows.forEach(r=>{ const d=r['부서명']; if(!d)return; const a=r['공급가액합계']||0; if(a>0) deptMap[d]=(deptMap[d]||0)+a; });
-  const deptSorted=Object.entries(deptMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  makeChart('cDept','bar',{labels:deptSorted.map(e=>e[0]),datasets:[{data:deptSorted.map(e=>e[1]),backgroundColor:C,borderRadius:5}]},{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtNum(c.raw)+'원'}}},scales:{x:{ticks:{callback:v=>fmt(v),font:{size:9}},grid:{color:'#f3f4f6'}},y:{grid:{display:false},ticks:{font:{size:10}}}}});
-
-  // 거래처 TOP10
-  const custMap={};
-  rows.forEach(r=>{ const c=r['거래처명']; if(!c)return; const a=r['공급가액합계']||0; if(a>0) custMap[c]=(custMap[c]||0)+a; });
-  const custSorted=Object.entries(custMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const custMax=custSorted[0]?custSorted[0][1]:1;
-  const ctb=document.getElementById('custTbody'); ctb.innerHTML='';
-  custSorted.forEach((e,i)=>{
-    const pct=Math.round(e[1]/custMax*100);
-    const rc=i===0?'style="background:#fef3c7"':i===1?'style="background:#f3f4f6"':i===2?'style="background:#fde8d8"':'';
-    ctb.innerHTML+=`<tr><td><b>${i+1}</b></td><td>${e[0].length>16?e[0].slice(0,16)+'…':e[0]}</td><td class="tr">${fmtNum(e[1])}</td><td><div class="pb-wrap"><div class="pb-bg"><div class="pb-fill" style="width:${pct}%;background:${C[i]}"></div></div><span style="font-size:9px;color:${C[i]};font-weight:700">${pct}%</span></div></td></tr>`;
-  });
-
-  // 담당자 전체 테이블
-  const ptb=document.getElementById('personTbody'); ptb.innerHTML='';
-  const maxAmt=persons[0]?persons[0][1].amt:1;
-  persons.forEach((e,i)=>{
-    const avg2=e[1].cnt>0?Math.round(e[1].amt/e[1].cnt):0;
-    const pct=Math.round(e[1].amt/maxAmt*100);
-    ptb.innerHTML+=`<tr><td><b>${i+1}</b></td><td><b>${e[0]}</b></td><td style="font-size:11px;color:var(--muted)">${e[1].dept||'—'}</td><td class="tr">${e[1].cnt}건</td><td class="tr">${fmtNum(e[1].amt)}</td><td class="tr">${fmtNum(avg2)}</td><td><div class="pb-wrap"><div class="pb-bg"><div class="pb-fill" style="width:${pct}%;background:${C[i%C.length]}"></div></div><span style="font-size:9px;color:${C[i%C.length]};font-weight:700">${pct}%</span></div></td></tr>`;
-  });
-
-  // 알림 배너
-  updateAlerts(persons, total);
-}
-
-function updateAlerts(persons, total){
-  const items=[];
-  if(persons.length>0){ const top=persons[0]; items.push(`🏆 ${top[0]} ${fmt(top[1].amt)} 1위`); }
-  // 더 많은 알림 로직 추가 가능
-  if(items.length>0){
-    document.getElementById('alertBar').style.display='flex';
-    document.getElementById('alertItems').innerHTML=items.map(t=>`<span class="alert-item">${t}</span>`).join('');
+  document.getElementById('k-tot').textContent=fmt(tot);
+  document.getElementById('k-tot-s').textContent=fmtF(tot)+' · '+(d.count||'-')+'건';
+  document.getElementById('k-cnt').textContent=(d.count||'-')+'건';
+  document.getElementById('k-avg').textContent=fmt(Math.round(tot/(d.count||1)));
+  if(d.persons?.length){document.getElementById('k-p1').textContent=d.persons[0][0];document.getElementById('k-p1s').textContent=fmt(d.persons[0][1])+' · '+d.persons[0][2]+'건';}
+  if(d.solutions?.length){document.getElementById('k-s1').textContent=d.solutions[0][0];document.getElementById('k-s1s').textContent=fmtF(d.solutions[0][1])+' · '+pct(d.solutions[0][1],tot);}
+  if(d.customers?.length){document.getElementById('k-c1').textContent=d.customers[0][0].replace('주식회사','').replace('(주)','').trim().slice(0,6);document.getElementById('k-c1s').textContent=fmtF(d.customers[0][1])+' · '+pct(d.customers[0][1],tot);}
+  if(d.depts?.length){document.getElementById('k-d1').textContent=d.depts[0][0];document.getElementById('k-d1s').textContent=fmtF(d.depts[0][1])+' · '+pct(d.depts[0][1],tot);}
+ 
+  // 주간 카드
+  const wk=(from,to)=>d.daily.filter(x=>{const v=parseInt(x[0].split('/')[1]||x[0].split('-')[1]);return v>=from&&v<=to;}).reduce((s,x)=>s+x[1],0);
+  const [w1,w2,w3,w4]=[wk(1,7),wk(8,14),wk(15,21),wk(22,31)];
+  const wkColors=['var(--blue)','var(--orange)','var(--red)','var(--green)'];
+  document.getElementById('wk-grid').innerHTML=[['1주(1~7일)',w1],['2주(8~14일)',w2],['3주(15~21일)',w3],['4주(22~말)',w4]].map(([n,v],i)=>`
+    <div class="wkcard"><div class="wn">${n}</div><div class="wv" style="color:${wkColors[i]}">${fmt(v)}</div><div class="wp">전체 ${pct(v,tot)}</div></div>`).join('');
+ 
+  // 종합현황 차트
+  line('c-ds',d.daily.map(x=>x[0]),d.daily.map(x=>x[1]));
+  donut('c-ss',d.solutions.map(x=>x[0]),d.solutions.map(x=>x[1]));
+  bar('c-ps',d.persons.slice(0,5).map(x=>x[0]),d.persons.slice(0,5).map(x=>x[1]));
+ 
+  // 일별 테이블
+  let cum=0;const maxD=Math.max(...d.daily.map(x=>x[1]));
+  const WD={'01':'금','02':'토','03':'일','04':'월','05':'화','06':'수','07':'목','08':'금','09':'토','10':'일','11':'월','12':'화','13':'수','14':'목','15':'금','16':'토','17':'일','18':'월','19':'화','20':'수','21':'목','22':'금','23':'토','24':'일','25':'월','26':'화','27':'수','28':'목','29':'금','30':'토','31':'일'};
+  document.getElementById('tb-daily').innerHTML=d.daily.map(([dt,amt])=>{
+    cum+=amt;const dd=(dt.split('/')[1]||'').padStart(2,'0');const wd=WD[dd]||'';const bad=amt<1000000;
+    return `<tr><td><strong>${dt}</strong></td>
+      <td><span class="tag ${['토','일'].includes(wd)?'tr':'tb'}">${wd}</span></td>
+      <td ${bad?'style="color:var(--red);font-weight:700"':''}>${fmtF(amt)}</td>
+      <td>${pct(amt,tot)}</td><td>${fmtF(cum)}</td>
+      <td><div class="bw"><div class="mb" style="width:${(amt/maxD*140).toFixed(0)}px;background:${bad?'#dc2626':'#2563eb'}"></div></div></td></tr>`;}).join('');
+ 
+  // ── 사원별 테이블 (인라인 바)
+  const maxP=d.persons[0][1];
+  const personColors=['#2563eb','#2563eb','#7c3aed','#7c3aed','#7c3aed','#059669','#059669','#d97706','#d97706','#94a3b8'];
+  document.getElementById('tb-person').innerHTML=d.persons.map(([n,a,c],i)=>`
+    <tr>
+      <td class="rk ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</td>
+      <td><strong>${n}</strong></td>
+      <td><strong>${fmtF(a)}</strong></td>
+      <td>${c}건</td>
+      <td>${fmt(Math.round(a/c))}</td>
+      <td>${ibar(a,maxP,tot,i,personColors[i])}</td>
+    </tr>`).join('');
+ 
+  // ── 솔루션 테이블 (인라인 바)
+  const maxS=d.solutions[0][1];
+  const solColors=['#2563eb','#7c3aed','#dc2626','#059669','#d97706','#0891b2','#65a30d','#c026d3'];
+  document.getElementById('tb-sol').innerHTML=d.solutions.map(([n,a],i)=>{
+    const isUncl=n.includes('미분류');
+    const color=isUncl?'#dc2626':solColors[i];
+    return `<tr>
+      <td class="rk">${i+1}</td>
+      <td>${isUncl?`<span class="tag tr">${n}</span>`:`<strong>${n}</strong>`}</td>
+      <td ${isUncl?'style="color:var(--red);font-weight:700"':''}>${fmtF(a)}</td>
+      <td>${ibar(a,maxS,tot,i,color)}</td>
+    </tr>`;}).join('');
+ 
+  // ── 거래처 테이블 (인라인 바)
+  const maxC=d.customers[0][1];
+  const custColors=['#2563eb','#2563eb','#2563eb','#7c3aed','#7c3aed','#7c3aed','#059669','#059669','#059669','#d97706','#d97706','#d97706','#0891b2','#0891b2','#0891b2'];
+  document.getElementById('tb-cust').innerHTML=d.customers.map(([n,a],i)=>`
+    <tr>
+      <td class="rk ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</td>
+      <td>${n}</td>
+      <td><strong>${fmtF(a)}</strong></td>
+      <td>${ibar(a,maxC,tot,i,custColors[i])}</td>
+    </tr>`).join('');
+ 
+  // ── 프로젝트 테이블 (인라인 바)
+  if(d.projects?.length){
+    const maxR=d.projects[0][1];
+    document.getElementById('tb-proj').innerHTML=d.projects.map(([n,a,c,cust],i)=>`
+      <tr>
+        <td class="rk">${i+1}</td>
+        <td><strong>${n}</strong></td>
+        <td style="font-size:11px;color:var(--g600)">${cust}</td>
+        <td>${fmtF(a)}</td>
+        <td>${c}건</td>
+        <td>${fmt(Math.round(a/c))}</td>
+        <td>${ibar(a,maxR,tot,i,'#7c3aed')}</td>
+      </tr>`).join('');
   }
+ 
+  // 시사점 자동 렌더링
+  renderAnalysis();
 }
-
-/* ═══════════════════════════════════
-   파이프라인 (로컬 저장)
-═══════════════════════════════════ */
-let pipeData=[];
-let editPipeIdx=-1;
-let defaultPipeStatus='active';
-
-const DEFAULT_PIPE=[
-  {name:'자담치킨',size:'가맹점 780개',status:'done',desc:'계약 완료. 추가 미팅 예정',date:'추가 미팅 협의 중'},
-  {name:'산하정보기술',size:'키오스크 500ea',status:'done',desc:'입찰 확정. 4월 초 200~250ea 발주 예정',date:'4월초 발주'},
-  {name:'더본코리아',size:'가맹점 3,200개',status:'active',desc:'브랜드앱 런칭 계약서 확인 진행. 테이블오더 250개+키오스크 318대',date:'계속 진행'},
-  {name:'삼성웰스토리',size:'급식/식자재',status:'active',desc:'국립항공박물관 3/30 설치. 푸디스트 5월 쿠팡사옥 입점 목표',date:'3/30 설치 완료'},
-  {name:'나이스정보통신 TRF',size:'배리어프리 90대',status:'active',desc:'4월 32인치 BFK 물품공급계약+30대 발주 예정. 연간 계획 2.7억',date:'4월 발주'},
-  {name:'뉴욕버거',size:'120개 매장 전체교체',status:'active',desc:'POS/키오스크/브랜드앱 전 매장 교체 실무협의 중',date:'7월말 착수'},
-  {name:'대학생협연합회',size:'33개 대학',status:'active',desc:'한국대학생협 통합관리시스템 구축 제안. K118+P78+개발비1.8억',date:'제안서 4/8 · 선정 4/16'},
-  {name:'멕시카나치킨',size:'가맹점 800개',status:'watch',desc:'기존 앱 대비 비버 기능 문의사항. 지속 소통 예정',date:'추가 소통'},
-  {name:'할리스커피',size:'가맹점 500개',status:'watch',desc:'내부 검토 보고서 준비 중. 추가 미팅 예정',date:'추가 미팅'},
-  {name:'한화리조트',size:'리조트 체인',status:'watch',desc:'타사 비교 검토 중. 차주 진행 여부 확정 예정 — 긴급 대응 필요',date:'차주 결정'},
-  {name:'노랑통닭',size:'가맹점 850개',status:'drop',desc:'타사(푸드테크) 최종 선정. 실패 원인 분석 필요',date:'원인 분석 예정'},
-];
-
-function loadPipeline(){
-  try{
-    const d=localStorage.getItem('beaver_pipeline');
-    pipeData=d?JSON.parse(d):[...DEFAULT_PIPE];
-  }catch(e){ pipeData=[...DEFAULT_PIPE]; }
-  renderPipeline();
-}
-
-function savePipeline(){ try{ localStorage.setItem('beaver_pipeline',JSON.stringify(pipeData)); }catch(e){} }
-
-function renderPipeline(){
-  ['done','active','watch','drop'].forEach(s=>{
-    const col=document.getElementById('col-'+s); col.innerHTML='';
-    pipeData.filter(p=>p.status===s).forEach((p,i)=>{
-      const realIdx=pipeData.indexOf(p);
-      const cls='pi-'+s;
-      col.innerHTML+=`<div class="pipe-item ${cls}">
-        <button class="pi-del" onclick="deletePipe(${realIdx})">✕</button>
-        <div class="pi-name" onclick="editPipe(${realIdx})" style="cursor:pointer">${p.name}</div>
-        <div class="pi-size">${p.size||''}</div>
-        <div class="pi-desc">${p.desc||''}</div>
-        ${p.date?`<div class="pi-date">📅 ${p.date}</div>`:''}
-      </div>`;
-    });
-  });
-  document.getElementById('pipeDone').textContent=pipeData.filter(p=>p.status==='done').length+'건';
-  document.getElementById('pipeActive').textContent=pipeData.filter(p=>p.status==='active').length+'건';
-  document.getElementById('pipeWatch').textContent=pipeData.filter(p=>p.status==='watch').length+'건';
-  document.getElementById('pipeDrop').textContent=pipeData.filter(p=>p.status==='drop').length+'건';
-}
-
-function addPipeItem(status){ defaultPipeStatus=status||'active'; editPipeIdx=-1; document.getElementById('mPipeName').value=''; document.getElementById('mPipeSize').value=''; document.getElementById('mPipeDesc').value=''; document.getElementById('mPipeDate').value=''; document.getElementById('mPipeStatus').value=defaultPipeStatus; document.getElementById('pipeModal').classList.add('active'); setTimeout(()=>document.getElementById('mPipeName').focus(),100); }
-function editPipe(i){ editPipeIdx=i; const p=pipeData[i]; document.getElementById('mPipeName').value=p.name; document.getElementById('mPipeSize').value=p.size||''; document.getElementById('mPipeDesc').value=p.desc||''; document.getElementById('mPipeDate').value=p.date||''; document.getElementById('mPipeStatus').value=p.status; document.getElementById('pipeModal').classList.add('active'); }
-function closePipeModal(){ document.getElementById('pipeModal').classList.remove('active'); }
-function savePipeItem(){
-  const name=document.getElementById('mPipeName').value.trim(); if(!name){ alert('브랜드명을 입력하세요'); return; }
-  const item={name,size:document.getElementById('mPipeSize').value.trim(),status:document.getElementById('mPipeStatus').value,desc:document.getElementById('mPipeDesc').value.trim(),date:document.getElementById('mPipeDate').value.trim()};
-  if(editPipeIdx>=0) pipeData[editPipeIdx]=item; else pipeData.push(item);
-  savePipeline(); renderPipeline(); closePipeModal();
-}
-function deletePipe(i){ if(confirm('삭제할까요?')){ pipeData.splice(i,1); savePipeline(); renderPipeline(); } }
-function exportPipeline(){
-  const txt=pipeData.map(p=>`[${p.status.toUpperCase()}] ${p.name} | ${p.size||''} | ${p.desc||''} | ${p.date||''}`).join('\n');
-  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='파이프라인_'+new Date().toLocaleDateString('ko-KR')+'.txt'; a.click();
-}
-
-/* ═══════════════════════════════════
-   체크리스트 (로컬 저장)
-═══════════════════════════════════ */
-let checkData=[];
-
-const DEFAULT_CHECKS=[
-  {text:'노랑통닭 타사선정 실패 원인 상세 분석 (차주 공유 내용 확인)',priority:'urgent',done:false},
-  {text:'전규영 담당 고객사 인수인계 완료 (3/31 이전)',priority:'urgent',done:false},
-  {text:'한화리조트 팀장 직접 방문 미팅 일정 확정',priority:'urgent',done:false},
-  {text:'진용민 비버스페이스 이동 인수인계 진행',priority:'high',done:false},
-  {text:'대학생협 제안서 최종 검토 (4/8 제출)',priority:'high',done:false},
-  {text:'산하정보 발주 수량 및 모델 비중 확정',priority:'high',done:false},
-  {text:'멕시카나치킨 기능 문의 답변서 작성',priority:'normal',done:false},
-  {text:'4월 영업 파이프라인 업데이트',priority:'normal',done:false},
-];
-
-function loadChecklist(){
-  try{ const d=localStorage.getItem('beaver_checklist'); checkData=d?JSON.parse(d):[...DEFAULT_CHECKS]; }
-  catch(e){ checkData=[...DEFAULT_CHECKS]; }
-  renderChecklist();
-}
-
-function saveChecklist(){ try{ localStorage.setItem('beaver_checklist',JSON.stringify(checkData)); }catch(e){} }
-
-function renderChecklist(){
-  const today=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  document.getElementById('checkWeek').textContent=today;
-  const done=checkData.filter(c=>c.done).length;
-  document.getElementById('checkProgress').textContent=`${done}/${checkData.length} 완료 (${Math.round(done/checkData.length*100)||0}%)`;
-
-  ['urgent','high','normal'].forEach(p=>{
-    const items=checkData.filter(c=>c.priority===p);
-    const idMap={urgent:'checklistUrgent',high:'checklistHigh',normal:'checklistNormal'};
-    const cntMap={urgent:'urgentCount',high:'highCount',normal:'normalCount'};
-    const el=document.getElementById(idMap[p]); el.innerHTML='';
-    document.getElementById(cntMap[p]).textContent=items.length+'건';
-    items.forEach((c,i)=>{
-      const realIdx=checkData.indexOf(c);
-      const pLabel={urgent:'🔴 긴급',high:'🟡 중요',normal:'🔵 일반'}[p];
-      const pcls={urgent:'cp-urgent',high:'cp-high',normal:'cp-normal'}[p];
-      el.innerHTML+=`<div class="checklist-item ${c.done?'done':''}">
-        <input type="checkbox" class="chk-cb" ${c.done?'checked':''} onchange="toggleCheck(${realIdx})">
-        <span class="chk-text ${c.done?'done':''}">${c.text}</span>
-        <span class="chk-priority ${pcls}">${pLabel}</span>
-        <button style="background:none;border:none;cursor:pointer;font-size:12px;color:#9ca3af" onclick="deleteCheck(${realIdx})">✕</button>
-      </div>`;
-    });
-  });
-}
-
-function toggleCheck(i){ checkData[i].done=!checkData[i].done; saveChecklist(); renderChecklist(); }
-function deleteCheck(i){ checkData.splice(i,1); saveChecklist(); renderChecklist(); }
-function clearDoneItems(){ checkData=checkData.filter(c=>!c.done); saveChecklist(); renderChecklist(); }
-let checkModalPriority='normal';
-function addCheckItem(p){ checkModalPriority=p||'normal'; document.getElementById('mCheckText').value=''; document.getElementById('mCheckPriority').value=checkModalPriority; document.getElementById('checkModal').classList.add('active'); setTimeout(()=>document.getElementById('mCheckText').focus(),100); }
-function closeCheckModal(){ document.getElementById('checkModal').classList.remove('active'); }
-function saveCheckItem(){
-  const text=document.getElementById('mCheckText').value.trim(); if(!text) return;
-  checkData.push({text,priority:document.getElementById('mCheckPriority').value,done:false});
-  saveChecklist(); renderChecklist(); closeCheckModal();
-}
-
-/* ═══════════════════════════════════
-   기타
-═══════════════════════════════════ */
-function exportSummary(){
-  if(!DB.rows||DB.rows.length===0){ alert('먼저 데이터를 업로드하세요'); return; }
-  const total=DB.rows.reduce((s,r)=>s+(r['공급가액합계']||0),0);
-  const txt=`비버웍스 영업본부 주간 요약\n생성: ${new Date().toLocaleString('ko-KR')}\n파일: ${DB.meta.fileName||''}\n\n총 매출: ${fmtNum(total)}원 (${fmt(total)})\n총 건수: ${DB.rows.length}건\n\n파이프라인 현황:\n${pipeData.map(p=>`- [${p.status}] ${p.name}: ${p.desc}`).join('\n')}\n\n체크리스트:\n${checkData.map(c=>`[${c.done?'완료':'미완'}] ${c.text}`).join('\n')}`;
-  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='주간요약_'+new Date().toLocaleDateString('ko-KR')+'.txt'; a.click();
-}
-
-// 모달 외부 클릭 닫기
-document.getElementById('pipeModal').addEventListener('click',function(e){ if(e.target===this) closePipeModal(); });
-document.getElementById('checkModal').addEventListener('click',function(e){ if(e.target===this) closeCheckModal(); });
-
-// 키보드 Enter로 모달 저장
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){ closePipeModal(); closeCheckModal(); }
-  if(e.key==='Enter'&&e.ctrlKey){
-    if(document.getElementById('pipeModal').classList.contains('active')) savePipeItem();
-    if(document.getElementById('checkModal').classList.contains('active')) saveCheckItem();
+ 
+function renderTabCharts(name){
+  const d=D;
+  if(name==='daily') line('c-daily',d.daily.map(x=>x[0]),d.daily.map(x=>x[1]));
+  if(name==='person'){bar('c-pb',d.persons.map(x=>x[0]),d.persons.map(x=>x[1]));bar('c-pc',d.persons.map(x=>x[0]),d.persons.map(x=>x[2]));bar('c-pa',d.persons.map(x=>x[0]),d.persons.map(x=>Math.round(x[1]/x[2])));}
+  if(name==='solution'){donut('c-sp',d.solutions.map(x=>x[0]),d.solutions.map(x=>x[1]));bar('c-sb',d.solutions.map(x=>x[0]),d.solutions.map(x=>x[1]));bar('c-db',d.depts.map(x=>x[0]),d.depts.map(x=>x[1]));}
+  if(name==='customer') bar('c-cb',d.customers.map(x=>x[0]),d.customers.map(x=>x[1]),true);
+  if(name==='project'&&d.projects){
+    const t15=d.projects.slice(0,15);
+    bar('c-pjb',t15.map(x=>x[0]),t15.map(x=>x[1]),true,Array(15).fill('#7c3aed'));
+    const rv=[['>1억',0],['5천~1억',0],['1천~5천만',0],['<1천만',0]];
+    d.projects.forEach(([,a])=>{if(a>=1e8)rv[0][1]++;else if(a>=5e7)rv[1][1]++;else if(a>=1e7)rv[2][1]++;else rv[3][1]++;});
+    donut('c-pjd',rv.map(x=>x[0]),rv.map(x=>x[1]));
   }
-});
-
-// 초기 로드
-window.addEventListener('load', loadFromStorage);
+  if(name==='analysis') renderAnalysis();
+}
+ 
+const TABS=['summary','daily','person','solution','customer','project','analysis','upload'];
+function go(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('p-'+name)?.classList.add('active');
+  const i=TABS.indexOf(name);document.querySelectorAll('.tab')[i]?.classList.add('active');
+  setTimeout(()=>renderTabCharts(name),60);
+}
+ 
+// Excel 파싱
+function parseERP(raw,fname){
+  let hr=-1;
+  for(let i=0;i<Math.min(8,raw.length);i++){
+    if(raw[i]?.some(v=>(String(v||'').includes('사원')&&String(v||'').includes('담당'))||v==='공급가액합계')){hr=i;break;}
+  }
+  if(hr<0){alert('헤더를 찾을 수 없습니다.\n사원(담당)명, 공급가액합계 컬럼 확인 필요');return null;}
+  const H=raw[hr].map(v=>String(v||'').trim());
+  const fi=k=>H.findIndex(h=>h.includes(k));
+  const [iA,iP,iD,iS,iDp,iC,iPj]=[fi('공급가액합계'),fi('사원'),fi('설치일자'),fi('솔루션'),fi('부서'),fi('거래처'),fi('프로젝트')];
+  const rows=[];
+  for(let i=hr+1;i<raw.length;i++){
+    const r=raw[i];if(!r)continue;
+    const a=Number(r[iA]||0);if(a<=0)continue;
+    const g=(idx,df='')=>idx>=0&&idx<r.length?String(r[idx]||df):df;
+    rows.push({date:g(iD).split(' ')[0],person:g(iP),cust:g(iC),proj:g(iPj),dept:g(iDp),sol:g(iS)||'미분류',amt:Math.round(a)});
+  }
+  if(!rows.length){alert('유효 데이터 없음');return null;}
+  const allM=[...new Set(rows.map(r=>r.date.slice(0,7)).filter(m=>m.includes('/')))];
+  const mainM=allM.reduce((a,b)=>rows.filter(r=>r.date.startsWith(b)).length>rows.filter(r=>r.date.startsWith(a)).length?b:a,allM[0]||'');
+  const mr=rows.filter(r=>r.date.startsWith(mainM));
+  const gs=(arr,k)=>{const m={};arr.forEach(r=>{const v=r[k]||'기타';m[v]=(m[v]||0)+r.amt;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  const byD={};mr.forEach(r=>{const d=r.date.slice(5).replace('-','/');byD[d]=(byD[d]||0)+r.amt;});
+  const byP={};mr.forEach(r=>{byP[r.person]=byP[r.person]||{a:0,c:0};byP[r.person].a+=r.amt;byP[r.person].c++;});
+  const byPj={};mr.forEach(r=>{byPj[r.proj]=byPj[r.proj]||{a:0,c:0,cs:new Set()};byPj[r.proj].a+=r.amt;byPj[r.proj].c++;byPj[r.proj].cs.add(r.cust);});
+  return{
+    period:mainM.slice(0,4)+'년 '+mainM.slice(5)+'월', file:fname,
+    total:mr.reduce((s,r)=>s+r.amt,0), count:mr.length,
+    daily:Object.entries(byD).sort((a,b)=>a[0].localeCompare(b[0])),
+    persons:Object.entries(byP).map(([n,v])=>[n,v.a,v.c]).sort((a,b)=>b[1]-a[1]).slice(0,10),
+    solutions:gs(mr,'sol').slice(0,8), depts:gs(mr,'dept').slice(0,10),
+    customers:gs(mr,'cust').slice(0,15),
+    projects:Object.entries(byPj).map(([n,v])=>[n,v.a,v.c,[...v.cs][0]||'']).sort((a,b)=>b[1]-a[1]).slice(0,20)
+  };
+}
+ 
+function handleFile(f){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    const res=parseERP(raw,f.name);
+    if(!res)return;
+    D=res;
+    try{localStorage.setItem('bbD4',JSON.stringify(D));}catch(e){}
+    document.getElementById('upf').textContent='✅ '+f.name;
+    document.getElementById('ups').textContent=res.period+' | '+res.count+'건 · 총 '+fmt(res.total);
+    document.getElementById('upr').style.display='flex';
+    renderAll();go('summary');
+    alert('✅ 업로드 완료!\n'+res.period+' · 총 '+fmt(res.total)+'\n\n📊 차트·테이블·시사점 분석이 모두 갱신되었습니다.');
+  };
+  rd.readAsArrayBuffer(f);
+}
+ 
+document.getElementById('fileIn').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+ 
+window.addEventListener('load',renderAll);
 </script>
 </body>
 </html>
+ 
