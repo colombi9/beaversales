@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦫 비버웍스 영업본부 | 매출현황 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a3c5e;
+    --accent: #e8a020;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --light-bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --border: #dde3ed;
+    --text: #2c3e50;
+    --text-muted: #7f8c8d;
+    --blue-sales: #2980b9;
+    --green-converted: #27ae60;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
+    background: var(--light-bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  header h1 { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+  header .header-meta { font-size: 11px; color: #adc6e0; }
+
+  /* ─── UPLOAD ZONE ─── */  /* ─── UPLOAD ZONE ─── */
+  .upload-zone {
+    background: #fff;
+    border: 2.5px dashed var(--accent);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    margin: 20px 24px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .upload-zone:hover { background: #fffbf0; }
+  .upload-zone .icon { font-size: 40px; }
+  .upload-zone p { margin: 8px 0 4px; font-weight: 600; color: var(--primary); font-size: 15px; }
+  .upload-zone small { color: var(--text-muted); }
+  .upload-zone input { display: none; }
+  #file-status {
+    margin: 6px 24px 0;
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    border-bottom: 2px solid var(--border);
+    margin-top: 10px;
+  }
+  .tab {
+    padding: 10px 18px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    border: 2px solid transparent;
+    border-bottom: none;
+    background: #e8edf3;
+    transition: all .2s;
+  }
+  .tab.active {
+    background: var(--card-bg);
+    color: var(--primary);
+    border-color: var(--border);
+    border-bottom-color: #fff;
+    margin-bottom: -2px;
+  }  .tab:hover:not(.active) { background: #dde3ed; }
+
+  /* ─── CONTENT ─── */
+  .page { display: none; padding: 20px 24px; }
+  .page.active { display: block; }
+
+  /* ─── KPI CARDS ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  }
+  .kpi-card.blue { border-left-color: var(--blue-sales); }
+  .kpi-card.green { border-left-color: var(--green-converted); }
+  .kpi-card.orange { border-left-color: var(--accent); }
+  .kpi-card.red { border-left-color: var(--danger); }
+  .kpi-card.purple { border-left-color: #8e44ad; }
+  .kpi-card .label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi-card .value { font-size: 20px; font-weight: 700; color: var(--text); }
+  .kpi-card .sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ─── SECTION TITLE ─── */
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ─── CHARTS ROW ─── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .chart-card {    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  }
+  .chart-card h3 { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; }
+  .chart-card canvas { max-height: 240px; }
+
+  /* ─── TABLES ─── */
+  .table-wrap {
+    background: var(--card-bg);
+    border-radius: 10px;
+    overflow: auto;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    margin-bottom: 20px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    background: var(--primary);
+    color: #fff;
+    padding: 9px 10px;
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th.blue-header { background: var(--blue-sales); }
+  th.green-header { background: var(--green-converted); }
+  td { padding: 7px 10px; border-bottom: 1px solid #f0f4f8; text-align: right; }
+  td.text-left { text-align: left; }
+  td.text-center { text-align: center; }
+  tr:hover td { background: #f8fbff; }
+  tr.subtotal td { background: #e8f0fa; font-weight: 700; }
+  tr.total td { background: #1a3c5e; color: #fff; font-weight: 700; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .badge-미확인 { background: #fff3cd; color: #856404; }
+  .badge-불출중 { background: #cce5ff; color: #004085; }
+  .badge-불출완료 { background: #d4edda; color: #155724; }
+  .badge-설치완료 { background: #d1ecf1; color: #0c5460; }
+
+  /* ─── LEGEND ─── */
+  .legend-bar {    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    header { padding: 0 12px; }
+    .page { padding: 12px; }
+    .upload-zone { margin: 12px; }
+    .tabs { padding: 0 12px; overflow-x: auto; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .no-data .big { font-size: 48px; }
+
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text);
+    background: #fff;
+  }
+  .filter-bar label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+
+  .two-col { color: var(--blue-sales); }
+  .two-col-g { color: var(--green-converted); }
+  .separator { width: 1px; height: 30px; background: var(--border); }
+</style>
+</head>
+<body><header>
+  <h1>🦫 비버웍스 영업본부 · 매출현황 대시보드</h1>
+  <span class="header-meta" id="header-period">ERP 데이터를 업로드하면 자동 분석됩니다</span>
+</header>
+
+<!-- ─── UPLOAD ─── -->
+<div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+  <div class="icon">📂</div>
+  <p>ERP 판매등록조회 Excel 파일 업로드</p>
+  <small>비버웍스_XX월_영업분석_vX.xlsx 파일을 클릭하거나 드래그하세요</small>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this)">
+</div>
+<div id="file-status"></div>
+
+<!-- ─── TABS ─── -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">📊 분석 대시보드</div>
+  <div class="tab" onclick="switchTab(1)">📋 팀·사원별 실적</div>
+  <div class="tab" onclick="switchTab(2)">🗂️ 프로젝트현황</div>
+  <div class="tab" onclick="switchTab(3)">📅 일별·주간현황</div>
+  <div class="tab" onclick="switchTab(4)">📄 원본데이터</div>
+</div>
+
+<!-- ─── PAGE 0: DASHBOARD ─── -->
+<div class="page active" id="page-0">
+  <div class="no-data"><div class="big">📊</div><p>ERP 파일을 업로드하면 대시보드가 표시됩니다</p></div>
+</div>
+
+<!-- ─── PAGE 1: TEAM & EMPLOYEE ─── -->
+<div class="page" id="page-1">
+  <div class="no-data"><div class="big">📋</div><p>ERP 파일을 업로드하면 팀·사원별 실적이 표시됩니다</p></div>
+</div>
+
+<!-- ─── PAGE 2: PROJECT ─── -->
+<div class="page" id="page-2">
+  <div class="no-data"><div class="big">🗂️</div><p>ERP 파일을 업로드하면 프로젝트 현황이 표시됩니다</p></div>
+</div>
+
+<!-- ─── PAGE 3: DAILY/WEEKLY ─── -->
+<div class="page" id="page-3">
+  <div class="no-data"><div class="big">📅</div><p>ERP 파일을 업로드하면 일별·주간 현황이 표시됩니다</p></div>
+</div>
+
+<!-- ─── PAGE 4: RAW DATA ─── -->
+<div class="page" id="page-4">
+  <div class="no-data"><div class="big">📄</div><p>ERP 파일을 업로드하면 원본 데이터가 표시됩니다</p></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════// STATE
+// ═══════════════════════════════════════════
+let G = {
+  rows: [],        // parsed data rows
+  period: '',
+  charts: {}
+};
+
+const MAIN_TEAMS = ['New Acquisition팀', '전략영업팀', '사업개발실'];
+const TEAM_COLORS = {
+  'New Acquisition팀': '#2980b9',
+  '전략영업팀': '#e67e22',
+  '사업개발실': '#27ae60',
+};
+
+const fmt = v => v ? Math.round(v).toLocaleString('ko-KR') : '-';
+const fmtPct = v => v ? (v * 100).toFixed(1) + '%' : '-';
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  document.querySelectorAll('.page').forEach((p, idx) => p.classList.toggle('active', idx === i));
+}
+
+// ═══════════════════════════════════════════
+// FILE UPLOAD + PARSE
+// ═══════════════════════════════════════════
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const sheetName = wb.SheetNames[0];  // 판매등록조회
+      const ws = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      parseERPData(raw, file.name);
+    } catch(err) {
+      document.getElementById('file-status').innerHTML = '❌ 파일 파싱 오류: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseERPData(raw, filename) {
+  // 헤더행 찾기 (인쇄, 수량, 진행상태 ... 가 있는 행)
+  let headerRow = -1;  for (let i = 0; i < Math.min(raw.length, 15); i++) {
+    const r = raw[i];
+    if (String(r[2]).includes('진행상태') || String(r[0]).includes('인쇄')) {
+      headerRow = i;
+      break;
+    }
+  }
+  if (headerRow === -1) headerRow = 4;
+
+  // 제목에서 기간 추출
+  const titleCell = String(raw[0] ? raw[0][0] : '');
+  const periodMatch = titleCell.match(/(\d+년\d+월)/);
+  G.period = periodMatch ? periodMatch[1] : '데이터';
+
+  // 컬럼 인덱스 매핑 (헤더행 기준)
+  const hdr = raw[headerRow];
+  const COL = {};
+  hdr.forEach((v, i) => {
+    const s = String(v).replace(/\s|\n/g, '');
+    if (s.includes('진행상태')) COL.status = i;
+    if (s.includes('설치일자')) COL.date_install = i;
+    if (s.includes('사원') || s.includes('담당')) COL.salesperson = i;
+    if (s.includes('거래처명')) COL.customer = i;
+    if (s.includes('프로젝트명')) COL.project = i;
+    if (s.includes('부서명')) COL.team = i;
+    if (s.includes('솔루션명')) COL.solution = i;
+    if (s.includes('상호명')) COL.brand = i;
+    if (s.includes('품목명')) COL.item = i;
+    if (s.includes('매출액합계') || (s.includes('매출액') && !s.includes('환산'))) COL.sales = i;
+    if (s.includes('환산매출') || s.includes('환산')) COL.converted = i;
+    if (s.includes('VAN') || s.includes('PG')) COL.van = i;
+    if (s.includes('구매') && s.includes('투자')) COL.purchase = i;
+    if (s.includes('예상수익') && !s.includes('률')) COL.profit = i;
+    if (s.includes('예상수익률')) COL.profitRate = i;
+    if (s.includes('날짜') && s.includes('추출')) COL.date = i;
+    if (s.includes('수량')) COL.qty = i;
+  });
+
+  // 기본 폴백 (기존 알려진 인덱스)
+  if (COL.status === undefined) COL.status = 2;
+  if (COL.salesperson === undefined) COL.salesperson = 8;
+  if (COL.customer === undefined) COL.customer = 9;
+  if (COL.project === undefined) COL.project = 10;
+  if (COL.team === undefined) COL.team = 11;
+  if (COL.solution === undefined) COL.solution = 12;
+  if (COL.brand === undefined) COL.brand = 13;
+  if (COL.item === undefined) COL.item = 15;
+  if (COL.sales === undefined) COL.sales = 16;
+  if (COL.converted === undefined) COL.converted = 17;
+  if (COL.van === undefined) COL.van = 18;  if (COL.purchase === undefined) COL.purchase = 19;
+  if (COL.profit === undefined) COL.profit = 20;
+  if (COL.profitRate === undefined) COL.profitRate = 21;
+  if (COL.date === undefined) COL.date = 23;
+
+  // 데이터 파싱
+  const rows = [];
+  for (let i = headerRow + 1; i < raw.length; i++) {
+    const r = raw[i];
+    if (!r || r.length === 0) continue;
+    const team = String(r[COL.team] || '').trim();
+    if (!team) continue;
+
+    // 날짜 파싱
+    let dateStr = String(r[COL.date] || '').trim();
+    // 설치일자 폴백
+    if (!dateStr || dateStr === '') {
+      dateStr = String(r[COL.date_install] || '').trim();
+    }
+    // 날짜에서 YYYY/MM/DD 추출
+    const dm = dateStr.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    const date = dm ? `${dm[1]}/${dm[2].padStart(2,'0')}/${dm[3].padStart(2,'0')}` : '';
+
+    rows.push({
+      status: String(r[COL.status] || '').trim(),
+      salesperson: String(r[COL.salesperson] || '').trim(),
+      customer: String(r[COL.customer] || '').trim(),
+      project: String(r[COL.project] || '').trim(),
+      team: team,
+      solution: String(r[COL.solution] || '').trim(),
+      brand: String(r[COL.brand] || '').trim(),
+      item: String(r[COL.item] || '').trim(),
+      sales: parseFloat(r[COL.sales]) || 0,
+      converted: parseFloat(r[COL.converted]) || 0,
+      van: parseFloat(r[COL.van]) || 0,
+      purchase: parseFloat(r[COL.purchase]) || 0,
+      profit: parseFloat(r[COL.profit]) || 0,
+      profitRate: parseFloat(r[COL.profitRate]) || 0,
+      date: date,
+      qty: parseInt(r[COL.qty]) || 1,
+    });
+  }
+
+  G.rows = rows;
+  document.getElementById('file-status').innerHTML = `✅ ${filename} 로드 완료 — 총 ${rows.length}건 분석`;
+  document.getElementById('header-period').textContent = `${G.period} 영업실적 | ${rows.length}건`;
+
+  renderAll();
+}// ═══════════════════════════════════════════
+// AGGREGATION HELPERS
+// ═══════════════════════════════════════════
+function sumBy(rows, key) { return rows.reduce((s, r) => s + (r[key] || 0), 0); }
+
+function groupBy(rows, key) {
+  return rows.reduce((acc, r) => {
+    const k = r[key] || '(미입력)';
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(r);
+    return acc;
+  }, {});
+}
+
+function getTeamRows(team) { return G.rows.filter(r => r.team === team); }
+
+function totalSales(rows) { return sumBy(rows, 'sales'); }
+function totalConverted(rows) { return sumBy(rows, 'converted'); }
+function totalCombined(rows) { return totalSales(rows) + totalConverted(rows); }
+
+// ═══════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════
+function renderAll() {
+  destroyCharts();
+  renderDashboard();
+  renderTeamEmployee();
+  renderProject();
+  renderDailyWeekly();
+  renderRawData();
+}
+
+function destroyCharts() {
+  Object.values(G.charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  G.charts = {};
+}
+
+// ═══════════════════════════════════════════
+// PAGE 0: DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const rows = G.rows;
+  const totalS = sumBy(rows, 'sales');
+  const totalC = sumBy(rows, 'converted');
+  const totalV = sumBy(rows, 'van');
+  const totalP = sumBy(rows, 'profit');
+  const totalPur = sumBy(rows, 'purchase');
+  const cnt = rows.length;
+  const avgProfit = rows.filter(r => r.sales + r.converted > 0).reduce((s, r) => s + r.profitRate, 0)
+                   / (rows.filter(r => r.sales + r.converted > 0).length || 1);
+  const mainRows = rows.filter(r => MAIN_TEAMS.includes(r.team));
+  const mainS = sumBy(mainRows, 'sales');
+  const mainC = sumBy(mainRows, 'converted');
+
+  let html = `
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue-sales)"></div> 매출액 (직접매출)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-converted)"></div> 환산매출액 (구독/렌탈)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> VAN/PG 수익</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div> 예상수익</div>
+  </div>
+
+  <div class="section-title">📌 전체 핵심 KPI</div>
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="label">💰 매출액 합계</div>
+      <div class="value">${fmt(totalS)}원</div>
+      <div class="sub">직접 제품·서비스 매출</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="label">🔄 환산매출액 합계</div>
+      <div class="value">${fmt(totalC)}원</div>
+      <div class="sub">구독·렌탈 환산 매출</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="label">📡 VAN/PG 수익</div>
+      <div class="value">${fmt(totalV)}원</div>
+      <div class="sub">24개월 기준</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="label">✨ 예상수익 합계</div>
+      <div class="value">${fmt(totalP)}원</div>
+      <div class="sub">평균 수익률 ${fmtPct(avgProfit)}</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="label">🛒 구매/투자 합계</div>
+      <div class="value">${fmt(totalPur)}원</div>
+      <div class="sub">원가 합계</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">📦 총 계약 건수</div>
+      <div class="value">${cnt.toLocaleString()}건</div>
+      <div class="sub">영업 3팀: ${mainRows.length}건</div>
+    </div>
+  </div>
+
+  <div class="section-title">① 영업 3팀 핵심실적 비교</div>
+  <div class="kpi-grid">`;
+  MAIN_TEAMS.forEach(team => {
+    const tr = getTeamRows(team);
+    const s = sumBy(tr, 'sales'), c = sumBy(tr, 'converted');
+    const v = sumBy(tr, 'van'), p = sumBy(tr, 'profit');
+    html += `
+    <div class="kpi-card" style="border-left-color:${TEAM_COLORS[team]}">
+      <div class="label" style="color:${TEAM_COLORS[team]}">${team} (${tr.length}건)</div>
+      <div class="value" style="font-size:15px"><span class="two-col">${fmt(s)}</span></div>
+      <div class="sub">매출액</div>
+      <div style="color:var(--green-converted);font-weight:700;margin-top:4px">${fmt(c)}</div>
+      <div class="sub">환산매출액</div>
+      <div style="color:#8e44ad;font-weight:700;margin-top:4px">${fmt(p)}</div>
+      <div class="sub">예상수익 / VAN: ${fmt(v)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // 차트 섹션
+  html += `
+  <div class="section-title">② 팀별 매출 차트</div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>팀별 매출액 vs 환산매출액 (영업 3팀)</h3>
+      <canvas id="chart-team-bar"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>매출 구성 비율 (전체)</h3>
+      <canvas id="chart-pie"></canvas>
+    </div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>팀별 예상수익 비교</h3>
+      <canvas id="chart-profit"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>진행상태별 건수</h3>
+      <canvas id="chart-status"></canvas>
+    </div>
+  </div>`;
+
+  // 상태별 집계
+  html += `
+  <div class="section-title">③ 진행상태별 현황</div>
+  <div class="table-wrap"><table>
+    <tr>
+      <th>진행상태</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>VAN/PG</th>      <th>예상수익</th>
+      <th>건수</th>
+    </tr>`;
+  const byStatus = groupBy(rows, 'status');
+  const statusOrder = ['미확인', '불출 중', '불출 완료', '설치 완료'];
+  statusOrder.forEach(st => {
+    const sr = byStatus[st] || [];
+    if (sr.length === 0) return;
+    html += `<tr>
+      <td class="text-center"><span class="badge badge-${st.replace(' ','')}">${st}</span></td>
+      <td class="two-col">${fmt(sumBy(sr,'sales'))}</td>
+      <td class="two-col-g">${fmt(sumBy(sr,'converted'))}</td>
+      <td>${fmt(sumBy(sr,'van'))}</td>
+      <td>${fmt(sumBy(sr,'profit'))}</td>
+      <td class="text-center">${sr.length}</td>
+    </tr>`;
+  });
+  html += `<tr class="total">
+    <td class="text-center">합 계</td>
+    <td>${fmt(totalS)}</td>
+    <td>${fmt(totalC)}</td>
+    <td>${fmt(totalV)}</td>
+    <td>${fmt(totalP)}</td>
+    <td class="text-center">${cnt}</td>
+  </tr></table></div>`;
+
+  document.getElementById('page-0').innerHTML = html;
+
+  // 차트 렌더링
+  setTimeout(() => {
+    // 팀별 바차트
+    const teamLabels = MAIN_TEAMS;
+    G.charts.teamBar = new Chart(document.getElementById('chart-team-bar'), {
+      type: 'bar',
+      data: {
+        labels: teamLabels,
+        datasets: [
+          {
+            label: '매출액',
+            data: teamLabels.map(t => sumBy(getTeamRows(t), 'sales')),
+            backgroundColor: '#2980b9cc',
+            borderColor: '#2980b9',
+            borderWidth: 1,
+          },
+          {
+            label: '환산매출액',
+            data: teamLabels.map(t => sumBy(getTeamRows(t), 'converted')),
+            backgroundColor: '#27ae60cc',
+            borderColor: '#27ae60',
+            borderWidth: 1,          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { ticks: { callback: v => (v/10000).toFixed(0) + '만' } } }
+      }
+    });
+
+    // 파이
+    G.charts.pie = new Chart(document.getElementById('chart-pie'), {
+      type: 'doughnut',
+      data: {
+        labels: ['매출액', '환산매출액', 'VAN/PG 수익'],
+        datasets: [{
+          data: [totalS, totalC, totalV],
+          backgroundColor: ['#2980b9', '#27ae60', '#e67e22'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) + '원' } }
+        }
+      }
+    });
+
+    // 예상수익
+    G.charts.profit = new Chart(document.getElementById('chart-profit'), {
+      type: 'bar',
+      data: {
+        labels: teamLabels,
+        datasets: [{
+          label: '예상수익',
+          data: teamLabels.map(t => sumBy(getTeamRows(t), 'profit')),
+          backgroundColor: ['#8e44adcc', '#c0392bcc', '#16a085cc'],
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: v => (v/10000).toFixed(0) + '만' } } }
+      }
+    });
+
+    // 상태별
+    const statusGroups = groupBy(rows, 'status');    G.charts.status = new Chart(document.getElementById('chart-status'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(statusGroups),
+        datasets: [{
+          data: Object.values(statusGroups).map(r => r.length),
+          backgroundColor: ['#f39c12', '#2980b9', '#27ae60', '#16a085'],
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }, 50);
+}
+
+// ═══════════════════════════════════════════
+// PAGE 1: TEAM & EMPLOYEE
+// ═══════════════════════════════════════════
+function renderTeamEmployee() {
+  const rows = G.rows;
+  const byTeam = groupBy(rows, 'team');
+  const teamOrder = [...MAIN_TEAMS, ...Object.keys(byTeam).filter(t => !MAIN_TEAMS.includes(t)).sort()];
+
+  let html = `
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue-sales)"></div> 매출액</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-converted)"></div> 환산매출액</div>
+    <div class="separator"></div>
+    <span style="font-size:11px;color:var(--text-muted)">※ 팀명 클릭 시 사원 상세 펼치기</span>
+  </div>
+
+  <div class="section-title">📋 팀·사원별 매출 실적 (매출액 / 환산매출액 분리)</div>
+  <div class="table-wrap"><table>
+    <tr>
+      <th>팀명</th>
+      <th>사원명</th>
+      <th>건수</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>매출액+환산</th>
+      <th>VAN/PG수익</th>
+      <th>구매비용</th>
+      <th>예상수익</th>
+      <th>수익률</th>
+    </tr>`;
+
+  let grandS = 0, grandC = 0, grandV = 0, grandPur = 0, grandP = 0, grandCnt = 0;
+
+  teamOrder.forEach(team => {
+    const tr = byTeam[team] || [];
+    if (tr.length === 0) return;    const byPerson = groupBy(tr, 'salesperson');
+    const tS = sumBy(tr,'sales'), tC = sumBy(tr,'converted');
+    const tV = sumBy(tr,'van'), tPur = sumBy(tr,'purchase'), tP = sumBy(tr,'profit');
+    grandS+=tS; grandC+=tC; grandV+=tV; grandPur+=tPur; grandP+=tP; grandCnt+=tr.length;
+
+    html += `<tr class="subtotal">
+      <td class="text-left" style="font-weight:700">${team}</td>
+      <td class="text-center">소계</td>
+      <td class="text-center">${tr.length}</td>
+      <td class="two-col">${fmt(tS)}</td>
+      <td class="two-col-g">${fmt(tC)}</td>
+      <td>${fmt(tS+tC)}</td>
+      <td>${fmt(tV)}</td>
+      <td>${fmt(tPur)}</td>
+      <td>${fmt(tP)}</td>
+      <td>${fmtPct(tP/(tS+tC||1))}</td>
+    </tr>`;
+
+    Object.entries(byPerson).sort((a,b) => sumBy(b[1],'sales')+sumBy(b[1],'converted') - (sumBy(a[1],'sales')+sumBy(a[1],'converted'))).forEach(([person, pr]) => {
+      const pS = sumBy(pr,'sales'), pC = sumBy(pr,'converted');
+      const pV = sumBy(pr,'van'), pPur = sumBy(pr,'purchase'), pP = sumBy(pr,'profit');
+      html += `<tr>
+        <td></td>
+        <td class="text-left">&nbsp;&nbsp;↳ ${person}</td>
+        <td class="text-center">${pr.length}</td>
+        <td class="two-col">${fmt(pS)}</td>
+        <td class="two-col-g">${fmt(pC)}</td>
+        <td>${fmt(pS+pC)}</td>
+        <td>${fmt(pV)}</td>
+        <td>${fmt(pPur)}</td>
+        <td>${fmt(pP)}</td>
+        <td>${fmtPct(pP/(pS+pC||1))}</td>
+      </tr>`;
+    });
+  });
+
+  html += `<tr class="total">
+    <td class="text-center" colspan="2">총 합계</td>
+    <td class="text-center">${grandCnt}</td>
+    <td>${fmt(grandS)}</td>
+    <td>${fmt(grandC)}</td>
+    <td>${fmt(grandS+grandC)}</td>
+    <td>${fmt(grandV)}</td>
+    <td>${fmt(grandPur)}</td>
+    <td>${fmt(grandP)}</td>
+    <td>${fmtPct(grandP/(grandS+grandC||1))}</td>
+  </tr>`;
+  html += `</table></div>`;
+
+  // 사원별 차트  html += `<div class="section-title">사원별 매출액 vs 환산매출액 (상위 15명)</div>
+  <div class="chart-card"><canvas id="chart-person-bar" style="max-height:300px"></canvas></div>`;
+
+  document.getElementById('page-1').innerHTML = html;
+
+  setTimeout(() => {
+    const byPerson = groupBy(rows, 'salesperson');
+    const sorted = Object.entries(byPerson)
+      .map(([p, r]) => ({ name: p, s: sumBy(r,'sales'), c: sumBy(r,'converted') }))
+      .sort((a, b) => (b.s + b.c) - (a.s + a.c))
+      .slice(0, 15);
+
+    G.charts.personBar = new Chart(document.getElementById('chart-person-bar'), {
+      type: 'bar',
+      data: {
+        labels: sorted.map(x => x.name),
+        datasets: [
+          { label: '매출액', data: sorted.map(x => x.s), backgroundColor: '#2980b9cc' },
+          { label: '환산매출액', data: sorted.map(x => x.c), backgroundColor: '#27ae60cc' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { x: { stacked: false }, y: { ticks: { callback: v => (v/10000).toFixed(0)+'만' } } }
+      }
+    });
+  }, 50);
+}
+
+// ═══════════════════════════════════════════
+// PAGE 2: PROJECT
+// ═══════════════════════════════════════════
+function renderProject() {
+  const rows = G.rows;
+  const byProject = groupBy(rows, 'project');
+  const sorted = Object.entries(byProject)
+    .map(([p, r]) => {
+      const team = r[0].team;
+      return { project: p, team, rows: r,
+        cnt: r.length,
+        s: sumBy(r,'sales'), c: sumBy(r,'converted'),
+        v: sumBy(r,'van'), pur: sumBy(r,'purchase'), p: sumBy(r,'profit')
+      };
+    })
+    .sort((a,b) => (b.s+b.c) - (a.s+a.c));
+
+  let html = `
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue-sales)"></div> 매출액</div>    <div class="legend-item"><div class="legend-dot" style="background:var(--green-converted)"></div> 환산매출액</div>
+  </div>
+  <div class="filter-bar">
+    <label>팀 필터:</label>
+    <select id="proj-team-filter" onchange="filterProjectTable()">
+      <option value="">전체</option>
+      ${[...new Set(rows.map(r=>r.team))].map(t=>`<option>${t}</option>`).join('')}
+    </select>
+  </div>
+  <div class="section-title">🗂️ 프로젝트(협력사)별 매출현황</div>
+  <div class="table-wrap"><table id="proj-table">
+    <tr>
+      <th>No.</th>
+      <th>팀명</th>
+      <th>프로젝트명</th>
+      <th>건수</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>매출합계</th>
+      <th>VAN/PG수익</th>
+      <th>구매비용</th>
+      <th>예상수익</th>
+      <th>수익률</th>
+    </tr>`;
+
+  let no = 1;
+  sorted.forEach(x => {
+    html += `<tr data-team="${x.team}">
+      <td class="text-center">${no++}</td>
+      <td class="text-left">${x.team}</td>
+      <td class="text-left">${x.project}</td>
+      <td class="text-center">${x.cnt}</td>
+      <td class="two-col">${fmt(x.s)}</td>
+      <td class="two-col-g">${fmt(x.c)}</td>
+      <td>${fmt(x.s+x.c)}</td>
+      <td>${fmt(x.v)}</td>
+      <td>${fmt(x.pur)}</td>
+      <td>${fmt(x.p)}</td>
+      <td>${fmtPct(x.p/(x.s+x.c||1))}</td>
+    </tr>`;
+  });
+
+  const totS = sumBy(rows,'sales'), totC = sumBy(rows,'converted');
+  html += `<tr class="total">
+    <td colspan="3" class="text-center">합 계</td>
+    <td class="text-center">${rows.length}</td>
+    <td>${fmt(totS)}</td>
+    <td>${fmt(totC)}</td>
+    <td>${fmt(totS+totC)}</td>
+    <td>${fmt(sumBy(rows,'van'))}</td>    <td>${fmt(sumBy(rows,'purchase'))}</td>
+    <td>${fmt(sumBy(rows,'profit'))}</td>
+    <td></td>
+  </tr></table></div>
+
+  <div class="section-title">프로젝트 규모 차트 (상위 15개)</div>
+  <div class="chart-card"><canvas id="chart-proj-bar" style="max-height:320px"></canvas></div>`;
+
+  document.getElementById('page-2').innerHTML = html;
+
+  setTimeout(() => {
+    const top15 = sorted.slice(0, 15);
+    G.charts.projBar = new Chart(document.getElementById('chart-proj-bar'), {
+      type: 'bar',
+      data: {
+        labels: top15.map(x => x.project.length > 14 ? x.project.slice(0,14)+'…' : x.project),
+        datasets: [
+          { label: '매출액', data: top15.map(x => x.s), backgroundColor: '#2980b9cc' },
+          { label: '환산매출액', data: top15.map(x => x.c), backgroundColor: '#27ae60cc' }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { x: { ticks: { callback: v => (v/10000).toFixed(0)+'만' } } }
+      }
+    });
+  }, 50);
+}
+
+function filterProjectTable() {
+  const val = document.getElementById('proj-team-filter').value;
+  document.querySelectorAll('#proj-table tr[data-team]').forEach(row => {
+    row.style.display = (!val || row.dataset.team === val) ? '' : 'none';
+  });
+}
+
+// ═══════════════════════════════════════════
+// PAGE 3: DAILY / WEEKLY
+// ═══════════════════════════════════════════
+function renderDailyWeekly() {
+  const rows = G.rows.filter(r => r.date);
+  const byDate = groupBy(rows, 'date');
+  const sortedDates = Object.keys(byDate).sort();
+
+  // 주차 계산
+  function getWeek(dateStr) {
+    const d = new Date(dateStr.replace(/\//g, '-'));
+    if (isNaN(d)) return 'N/A';    const day = d.getDate();
+    return `${Math.ceil(day / 7)}주차`;
+  }
+
+  function getDayOfWeek(dateStr) {
+    const days = ['일','월','화','수','목','금','토'];
+    const d = new Date(dateStr.replace(/\//g, '-'));
+    return isNaN(d) ? '' : days[d.getDay()];
+  }
+
+  // 일별 집계
+  const dailyData = sortedDates.map(date => {
+    const dr = byDate[date];
+    const teamS = {};
+    MAIN_TEAMS.forEach(t => { teamS[t] = { s: 0, c: 0 }; });
+    dr.forEach(r => {
+      if (teamS[r.team]) { teamS[r.team].s += r.sales; teamS[r.team].c += r.converted; }
+    });
+    return {
+      date, week: getWeek(date), day: getDayOfWeek(date),
+      cnt: dr.length,
+      s: sumBy(dr,'sales'), c: sumBy(dr,'converted'),
+      van: sumBy(dr,'van'), pur: sumBy(dr,'purchase'), p: sumBy(dr,'profit'),
+      teams: teamS
+    };
+  });
+
+  // 주차별 집계
+  const byWeek = {};
+  dailyData.forEach(d => {
+    if (!byWeek[d.week]) byWeek[d.week] = [];
+    byWeek[d.week].push(d);
+  });
+
+  let html = `
+  <div class="legend-bar">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue-sales)"></div> 매출액</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-converted)"></div> 환산매출액</div>
+  </div>
+
+  <div class="section-title">📅 일별 매출현황 (매출액 / 환산매출액 분리)</div>
+  <div class="table-wrap"><table>
+    <tr>
+      <th>날짜</th><th>주차</th><th>요일</th><th>건수</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>VAN/PG</th>
+      <th>예상수익</th>
+      <th style="background:#2980b9;">NA팀 매출액</th>
+      <th style="background:#27ae60;">NA팀 환산</th>      <th style="background:#e67e22;">전략팀 매출액</th>
+      <th style="background:#c0392b;">전략팀 환산</th>
+      <th style="background:#16a085;">사업개발 매출액</th>
+      <th style="background:#1abc9c;">사업개발 환산</th>
+    </tr>`;
+
+  let cumS = 0, cumC = 0, cumP = 0, cumCnt = 0;
+  dailyData.forEach(d => {
+    cumS += d.s; cumC += d.c; cumP += d.p; cumCnt += d.cnt;
+    const na = d.teams['New Acquisition팀'];
+    const st = d.teams['전략영업팀'];
+    const bd = d.teams['사업개발실'];
+    html += `<tr>
+      <td class="text-center">${d.date}</td>
+      <td class="text-center">${d.week}</td>
+      <td class="text-center">${d.day}</td>
+      <td class="text-center">${d.cnt}</td>
+      <td class="two-col">${fmt(d.s)}</td>
+      <td class="two-col-g">${fmt(d.c)}</td>
+      <td>${fmt(d.van)}</td>
+      <td>${fmt(d.p)}</td>
+      <td>${fmt(na.s)}</td>
+      <td>${fmt(na.c)}</td>
+      <td>${fmt(st.s)}</td>
+      <td>${fmt(st.c)}</td>
+      <td>${fmt(bd.s)}</td>
+      <td>${fmt(bd.c)}</td>
+    </tr>`;
+  });
+
+  const totS = sumBy(rows,'sales'), totC = sumBy(rows,'converted');
+  html += `<tr class="total">
+    <td colspan="3" class="text-center">합 계</td>
+    <td class="text-center">${rows.length}</td>
+    <td>${fmt(totS)}</td>
+    <td>${fmt(totC)}</td>
+    <td>${fmt(sumBy(rows,'van'))}</td>
+    <td>${fmt(sumBy(rows,'profit'))}</td>
+    <td colspan="6"></td>
+  </tr></table></div>
+
+  <div class="section-title">📅 주차별 매출현황</div>
+  <div class="table-wrap"><table>
+    <tr>
+      <th>주차</th><th>기간</th><th>건수</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>매출합계</th>
+      <th>VAN/PG</th>
+      <th>예상수익</th>    </tr>`;
+
+  Object.entries(byWeek).sort().forEach(([week, days]) => {
+    const dates = days.map(d => d.date).sort();
+    const period = dates.length > 1 ? `${dates[0]} ~ ${dates[dates.length-1]}` : dates[0];
+    const wS = days.reduce((s,d) => s+d.s, 0);
+    const wC = days.reduce((s,d) => s+d.c, 0);
+    const wV = days.reduce((s,d) => s+d.van, 0);
+    const wP = days.reduce((s,d) => s+d.p, 0);
+    const wCnt = days.reduce((s,d) => s+d.cnt, 0);
+    html += `<tr class="subtotal">
+      <td class="text-center">${week}</td>
+      <td class="text-center">${period}</td>
+      <td class="text-center">${wCnt}</td>
+      <td class="two-col">${fmt(wS)}</td>
+      <td class="two-col-g">${fmt(wC)}</td>
+      <td>${fmt(wS+wC)}</td>
+      <td>${fmt(wV)}</td>
+      <td>${fmt(wP)}</td>
+    </tr>`;
+  });
+
+  html += `<tr class="total">
+    <td colspan="2" class="text-center">합 계</td>
+    <td class="text-center">${rows.length}</td>
+    <td>${fmt(totS)}</td>
+    <td>${fmt(totC)}</td>
+    <td>${fmt(totS+totC)}</td>
+    <td>${fmt(sumBy(rows,'van'))}</td>
+    <td>${fmt(sumBy(rows,'profit'))}</td>
+  </tr></table></div>
+
+  <div class="section-title">일별 매출 추이 차트</div>
+  <div class="chart-card"><canvas id="chart-daily-line" style="max-height:280px"></canvas></div>`;
+
+  document.getElementById('page-3').innerHTML = html;
+
+  setTimeout(() => {
+    G.charts.dailyLine = new Chart(document.getElementById('chart-daily-line'), {
+      type: 'line',
+      data: {
+        labels: dailyData.map(d => d.date),
+        datasets: [
+          {
+            label: '매출액',
+            data: dailyData.map(d => d.s),
+            borderColor: '#2980b9',
+            backgroundColor: '#2980b920',
+            fill: true, tension: 0.3, pointRadius: 4
+          },          {
+            label: '환산매출액',
+            data: dailyData.map(d => d.c),
+            borderColor: '#27ae60',
+            backgroundColor: '#27ae6020',
+            fill: true, tension: 0.3, pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { ticks: { callback: v => (v/10000).toFixed(0)+'만' } } }
+      }
+    });
+  }, 50);
+}
+
+// ═══════════════════════════════════════════
+// PAGE 4: RAW DATA
+// ═══════════════════════════════════════════
+function renderRawData() {
+  const rows = G.rows;
+  const filter = val => rows.filter(r =>
+    !val || r.team.includes(val) || r.salesperson.includes(val) || r.customer.includes(val) || r.project.includes(val)
+  );
+
+  let html = `
+  <div class="filter-bar">
+    <label>검색:</label>
+    <input type="text" id="raw-search" placeholder="팀명/사원명/거래처/프로젝트 검색..." oninput="filterRawTable(this.value)" style="width:240px">
+    <label>팀:</label>
+    <select id="raw-team" onchange="filterRawTable(document.getElementById('raw-search').value)">
+      <option value="">전체</option>
+      ${[...new Set(rows.map(r=>r.team))].sort().map(t=>`<option>${t}</option>`).join('')}
+    </select>
+    <span id="raw-count" style="font-size:11px;color:var(--text-muted)">총 ${rows.length}건</span>
+  </div>
+  <div class="table-wrap" style="max-height:600px;overflow-y:auto"><table id="raw-table">
+    <tr>
+      <th>No.</th><th>팀명</th><th>사원명</th><th>거래처명</th><th>프로젝트명</th>
+      <th>날짜</th><th>진행상태</th><th>품목(요약)</th>
+      <th class="blue-header">매출액</th>
+      <th class="green-header">환산매출액</th>
+      <th>VAN/PG</th>
+      <th>구매비용</th>
+      <th>예상수익</th>
+      <th>수익률</th>
+    </tr>`;  rows.forEach((r, i) => {
+    const statusClass = r.status.replace(' ','');
+    html += `<tr data-team="${r.team}" data-search="${(r.team+r.salesperson+r.customer+r.project).toLowerCase()}">
+      <td class="text-center">${i+1}</td>
+      <td class="text-left">${r.team}</td>
+      <td class="text-left">${r.salesperson}</td>
+      <td class="text-left">${r.customer}</td>
+      <td class="text-left">${r.project}</td>
+      <td class="text-center">${r.date}</td>
+      <td class="text-center"><span class="badge badge-${statusClass}">${r.status}</span></td>
+      <td class="text-left" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.item}">${r.item}</td>
+      <td class="two-col">${fmt(r.sales)}</td>
+      <td class="two-col-g">${fmt(r.converted)}</td>
+      <td>${fmt(r.van)}</td>
+      <td>${fmt(r.purchase)}</td>
+      <td>${fmt(r.profit)}</td>
+      <td>${r.profitRate ? (r.profitRate*100).toFixed(1)+'%' : '-'}</td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  document.getElementById('page-4').innerHTML = html;
+}
+
+function filterRawTable(search) {
+  const team = document.getElementById('raw-team') ? document.getElementById('raw-team').value : '';
+  const q = (search || '').toLowerCase();
+  let cnt = 0;
+  document.querySelectorAll('#raw-table tr[data-team]').forEach(row => {
+    const matchTeam = !team || row.dataset.team === team;
+    const matchSearch = !q || row.dataset.search.includes(q);
+    const show = matchTeam && matchSearch;
+    row.style.display = show ? '' : 'none';
+    if (show) cnt++;
+  });
+  const countEl = document.getElementById('raw-count');
+  if (countEl) countEl.textContent = `${cnt}건 표시`;
+}
+
+// ─── DRAG & DROP ───
+const uploadZone = document.querySelector('.upload-zone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.background = '#fffbf0'; });
+uploadZone.addEventListener('dragleave', () => { uploadZone.style.background = ''; });
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.style.background = '';
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const fakeInput = { files: [file] };
+    handleFile(fakeInput);
+  }
+});
+</script>
+</body></html>
