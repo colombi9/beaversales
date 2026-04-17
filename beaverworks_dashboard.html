@@ -401,6 +401,7 @@ function parseERPData(raw, filename) {
     if (!r || r.length === 0) continue;
     const team = String(r[COL.team] || '').trim();
     if (!team) continue;
+    if (!MAIN_TEAMS.includes(team)) continue; // 3개팀 외 제외
 
     // 날짜 파싱
     let dateStr = String(r[COL.date] || '').trim();
@@ -702,7 +703,7 @@ function renderDashboard() {
 function renderTeamEmployee() {
   const rows = G.rows;
   const byTeam = groupBy(rows, 'team');
-  const teamOrder = [...MAIN_TEAMS, ...Object.keys(byTeam).filter(t => !MAIN_TEAMS.includes(t)).sort()];
+  const teamOrder = MAIN_TEAMS.filter(t => byTeam[t]); // 3개팀만
 
   let html = `
   <div class="legend-bar">
