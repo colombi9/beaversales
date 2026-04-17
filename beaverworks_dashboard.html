@@ -780,7 +780,8 @@ function renderTeamEmployee() {
   </tr>`;
   html += `</table></div>`;
 
-  // 사원별 차트  html += `<div class="section-title">사원별 매출액 vs 환산매출액 (상위 15명)</div>
+  // 사원별 차트
+  html += `<div class="section-title">사원별 매출액 vs 환산매출액 (상위 15명)</div>
   <div class="chart-card"><canvas id="chart-person-bar" style="max-height:300px"></canvas></div>`;
 
   document.getElementById('page-1').innerHTML = html;
