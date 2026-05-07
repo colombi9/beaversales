@@ -178,7 +178,7 @@ function achieveColor(rate){
   return 'achievement-bad';
 }
 
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // 파일 파싱
 // ═══════════════════════════════════════════════════════════
 function handleFile(input){
@@ -218,8 +218,9 @@ function parseERPData(wb){
     if(first==='상태'||first==='인쇄'){ hdrRow=i; break; }
   }
   const headers = raw[hdrRow].map(h=>String(h||'').trim());
+  // 중복 컬럼명은 첫 번째 등장을 사용 (담당자명, 부서명 각 2개씩 존재)
   const ci = {};
-  headers.forEach((h,i)=>{ ci[h]=i; });
+  headers.forEach((h,i)=>{ if(!(h in ci)) ci[h]=i; });
 
   // 새 포맷(5월~): 공급가액, 일자-No., 담당자명
   // 구 포맷(~4월): 매출액 합계, 날짜(추출), 사원(담당)명
@@ -231,7 +232,7 @@ function parseERPData(wb){
     const team = String(row[ci['부서명']]||'').trim();
     if(!team||!MAIN_TEAMS.includes(team)) continue;
 
-    let dateStr='', salesperson='', sales=0, converted=0, van=0, purchase=0, commission=0, installment=0;
+    let dateStr='', salesperson='', sales=0, converted=0, van=0, purchase=0, installment=0;
 
     if(isNewFmt){
       // 새 포맷
@@ -243,20 +244,21 @@ function parseERPData(wb){
       converted = Number(row[ci['환산매출(구독/렌탈)']]||0);
       van = Number(row[ci['VAN/PG수익(24개월기준)']]||0);
       purchase = Number(row[ci['구매/투자합계']]||0);
-      commission = Number(row[ci['영업수수료']]||0);
       installment = Number(row[ci['할부금액(합계)']]||0);
     } else {
       // 구 포맷 (하위 호환)
-      dateStr = String(row[ci['늠짜(추출)']]||'').trim();
+      dateStr = String(row[ci['날짜(추출)']]||'').trim();
       salesperson = String(row[ci['사원(담당)명']]||'').trim();
       sales = Number(row[ci['매출액 합계']]||0);
       converted = Number(row[ci['환산 매출 (구독/렌탈)']]||0);
       van = Number(row[ci['VAN/PG수익 (24개월기준)']]||0);
       purchase = Number(row[ci['구매/투자합계']]||0);
-      commission = 0; installment = 0;
+      installment = 0;
     }
 
-    const profitBase = sales + converted - purchase;
+    // 예상수익 = 공급가액 + 환산매출 + VAN/PG - 구매비용
+    const profit = sales + converted + van - purchase;
+    const profitRate = (sales+converted) > 0 ? profit/(sales+converted) : 0;
 
     result.push({
       status: String(row[ci['상태']||ci['진행상태']]||'').trim(),
@@ -267,8 +269,8 @@ function parseERPData(wb){
       item: String(row[ci['품목명(규격)']]||row[ci['품목명(요약)']]||'').trim(),
       store: String(row[ci['매장 상호명']]||'').trim(),
       qty: Number(row[ci['수량']]||0),
-      sales, converted, van, purchase, commission, installment,
-      profit: profitBase,
+      sales, converted, van, purchase, installment,
+      profit, profitRate,
     });
   }
   return result;
@@ -300,9 +302,9 @@ function renderDashboard(){
   const totalC  = sumBy(rows,'converted');
   const totalV  = sumBy(rows,'van');
   const totalPur= sumBy(rows,'purchase');
-  const totalCom= sumBy(rows,'commission');
   const totalIns= sumBy(rows,'installment');
   const totalProfit = sumBy(rows,'profit');
+  const avgProfitRate = (totalS+totalC)>0 ? totalProfit/(totalS+totalC) : 0;
   const cnt = rows.length;
 
   let html=`
@@ -310,16 +312,15 @@ function renderDashboard(){
     <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>공급가액(매출액)</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>환산매출(구독/렌탈)</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>VAN/PG 수익</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>영업수수료</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>예상수익</div>
   </div>
   <div class="section-title">📌 전체 핵심 KPI (영업 3팀 합산)</div>
   <div class="kpi-grid">
     <div class="kpi-card blue"><div class="lbl">💰 공급가액 합계</div><div class="val">${fmt(totalS)}원</div><div class="sub">VAT 제외 매출</div></div>
     <div class="kpi-card green"><div class="lbl">🔄 환산매출 합계</div><div class="val">${fmt(totalC)}원</div><div class="sub">구독·렌탈 환산</div></div>
     <div class="kpi-card orange"><div class="lbl">📡 VAN/PG 수익</div><div class="val">${fmt(totalV)}원</div><div class="sub">24개월 기준</div></div>
-    <div class="kpi-card purple"><div class="lbl">💼 영업수수료</div><div class="val">${fmt(totalCom)}원</div><div class="sub">수수료 합계</div></div>
     <div class="kpi-card red"><div class="lbl">🛒 구매/투자 합계</div><div class="val">${fmt(totalPur)}원</div><div class="sub">원가 합계</div></div>
-    <div class="kpi-card teal"><div class="lbl">📈 예상 수익</div><div class="val">${fmt(totalProfit)}원</div><div class="sub">공급가액+환산-구매</div></div>
+    <div class="kpi-card teal"><div class="lbl">📈 예상수익</div><div class="val">${fmt(totalProfit)}원</div><div class="sub">합계+VAN-구매 / ${fmtPct(avgProfitRate)}</div></div>
     <div class="kpi-card"><div class="lbl">💳 할부금액 합계</div><div class="val">${fmt(totalIns)}원</div><div class="sub">할부 매출</div></div>
     <div class="kpi-card"><div class="lbl">📦 총 계약 건수</div><div class="val">${cnt.toLocaleString()}건</div><div class="sub">영업 3팀</div></div>
   </div>
@@ -329,12 +330,13 @@ function renderDashboard(){
 
   MAIN_TEAMS.forEach(team=>{
     const tr=getTeamRows(team);
-    const s=sumBy(tr,'sales'),c=sumBy(tr,'converted'),v=sumBy(tr,'van'),com=sumBy(tr,'commission'),pur=sumBy(tr,'purchase');
+    const s=sumBy(tr,'sales'),c=sumBy(tr,'converted'),v=sumBy(tr,'van'),pur=sumBy(tr,'purchase');
+    const p=s+c+v-pur; const pr=(s+c)>0?p/(s+c):0;
     html+=`<div class="kpi-card" style="border-left-color:${TEAM_COLORS[team]}">
       <div class="lbl" style="color:${TEAM_COLORS[team]}">${team} (${tr.length}건)</div>
       <div class="val" style="font-size:15px">${fmt(s)}원</div><div class="sub">공급가액</div>
-      <div style="color:var(--green);font-weight:700;margin-top:4px">${fmt(c)}원</div><div class="sub">환산매출</div>
-      <div style="color:var(--purple);font-weight:700;margin-top:4px">${fmt(com)}원</div><div class="sub">영업수수료 / VAN: ${fmt(v)}원</div>
+      <div style="color:var(--green);font-weight:700;margin-top:4px">${fmt(c)}원</div><div class="sub">환산매출 / VAN: ${fmt(v)}원</div>
+      <div style="color:#16a085;font-weight:700;margin-top:4px">${fmt(p)}원</div><div class="sub">예상수익 (${fmtPct(pr)})</div>
     </div>`;
   });
   html+=`</div>
@@ -352,30 +354,32 @@ function renderDashboard(){
   // 진행상태별 현황
   html+=`<div class="section-title">③ 진행상태별 현황</div>
   <div class="table-wrap"><table>
-    <tr><th>진행상태</th><th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>VAN/PG</th><th>영업수수료</th><th>구매비용</th><th>건수</th></tr>`;
+    <tr><th>진행상태</th><th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>합계</th><th>VAN/PG</th><th>구매비용</th><th>예상수익</th><th>건수</th></tr>`;
   const byStatus=groupBy(rows,'status');
   ['미확인','불출 중','불출 완료','설치 완료'].forEach(st=>{
     const sr=byStatus[st]||[]; if(!sr.length) return;
+    const sS=sumBy(sr,'sales'),sC=sumBy(sr,'converted'),sV=sumBy(sr,'van'),sP=sumBy(sr,'purchase');
     html+=`<tr><td class="text-center"><span class="badge badge-${st.replace(/ /g,'')}">${st}</span></td>
-      <td class="num">${fmt(sumBy(sr,'sales'))}</td><td class="num">${fmt(sumBy(sr,'converted'))}</td>
-      <td class="num">${fmt(sumBy(sr,'van'))}</td><td class="num">${fmt(sumBy(sr,'commission'))}</td>
-      <td class="num">${fmt(sumBy(sr,'purchase'))}</td><td class="text-center">${sr.length}</td></tr>`;
+      <td class="num">${fmt(sS)}</td><td class="num">${fmt(sC)}</td><td class="num">${fmt(sS+sC)}</td>
+      <td class="num">${fmt(sM)}</td><td class="num">${fmt(sP)}</td>
+      <td class="num">${fmt(sS+sC+sV-sP)}</td><td class="text-center">${sr.length}</td></tr>`;
   });
   html+=`<tr class="total"><td class="text-center">합 계</td>
-    <td class="num">${fmt(totalS)}</td><td class="num">${fmt(totalC)}</td>
-    <td class="num">${fmt(totalV)}</td><td class="num">${fmt(totalCom)}</td>
-    <td class="num">${fmt(totalPur)}</td><td class="text-center">${cnt}</td>
+    <td class="num">${fmt(totalS)}</td><td class="num">${fmt(totalC)}</td><td class="num">${fmt(totalS+totalC)}</td>
+    <td class="num">${fmt(totalV)}</td><td class="num">${fmt(totalPur)}</td>
+    <td class="num">${fmt(totalProfit)}</td><td class="text-center">${cnt}</td>
   </tr></table></div>
 
   <div class="section-title">④ 솔루션별 현황</div>
   <div class="table-wrap"><table>
-    <tr><th>솔루션명</th><th>팀명</th><th class="blue-hdr">공급가액</th><th>영업수수료</th><th>건수</th></tr>`;
+    <tr><th>솔루션명</th><th>팀명</th><th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>합계</th><th>예상수익</th><th>건수</th></tr>`;
   const bySolution=groupBy(rows,'solution');
   Object.entries(bySolution).sort((a,b)=>sumBy(b[1],'sales')-sumBy(a[1],'sales')).forEach(([sol,sr])=>{
     const teams=[...new Set(sr.map(r=>r.team))].join(', ');
+    const sS=sumBy(sr,'sales'),sC=sumBy(sr,'converted'),sV=sumBy(sr,'van'),sP=sumBy(sr,'purchase');
     html+=`<tr><td>${sol||'(미지정)'}</td><td>${teams}</td>
-      <td class="num">${fmt(sumBy(sr,'sales'))}</td><td class="num">${fmt(sumBy(sr,'commission'))}</td>
-      <td class="text-center">${sr.length}</td></tr>`;
+      <td class="num">${fmt(sS)}</td><td class="num">${fmt(sC)}</td><td class="num">${fmt(sS+sC)}</td>
+      <td class="num">${fmt(sS+sC+sV-sP)}</td><td class="text-center">${sr.length}</td></tr>`;
   });
   html+=`</table></div>`;
 
@@ -398,8 +402,8 @@ function renderDashboard(){
     G.charts.pie=new Chart(document.getElementById('ch-pie'),{
       type:'doughnut',
       data:{
-        labels:['공급가액','환산매출','VAN/PG수익','영업수수료'],
-        datasets:[{data:[totalS,totalC,totalV,totalCom],backgroundColor:['#2980b9','#27ae60','#e67e22','#8e44ad']}]
+        labels:['공급가액','환산매출','VAN/PG수익'],
+        datasets:[{data:[totalS,totalC,totalV],backgroundColor:['#2980b9','#27ae60','#e67e22']}]
       },
       options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.raw)+'원'}}}}
     });
@@ -432,13 +436,15 @@ function renderDashboard(){
 function renderGoalAchievement(){
   const curMon = G.uploadedMonth; // 1-12, null if not detected
 
-  // 현재 업로드 월 실적 계산
-  const curActuals = {};
+  // 현재 업로드 월 실적 계산 (공급가액 + 환산매출 분리)
+  const curActuals = {}, curActualsC = {};
   if(curMon){
     MAIN_TEAMS.forEach(t=>{
-      curActuals[t] = sumBy(getTeamRows(t),'sales');
+      curActuals[t]  = sumBy(getTeamRows(t),'sales');
+      curActualsC[t] = sumBy(getTeamRows(t),'converted');
     });
-    curActuals['영업본부 전체'] = Object.values(curActuals).reduce((s,v)=>s+v,0);
+    curActuals['영업본부 전체']  = Object.values(curActuals).reduce((s,v)=>s+v,0);
+    curActualsC['영업본부 전체'] = Object.values(curActualsC).reduce((s,v)=>s+v,0);
   }
 
   // 각 팀·월 실적 취합 (confirmed + current)
@@ -450,24 +456,29 @@ function renderGoalAchievement(){
   }
 
   // ── 이번 달 달성율 게이지 ──
-  const displayMon = curMon || 5; // default to 5월 if no file
+  const displayMon = curMon || 5;
   let html=`
   <div class="section-title">🎯 ${displayMon}월 팀별 목표 달성율 현황</div>
   <div class="goal-grid">`;
 
   [...MAIN_TEAMS,'영업본부 전체'].forEach(team=>{
     const target = MONTHLY_TARGETS[team]?.[displayMon-1]||0;
-    const actual = curMon ? (curActuals[team]||0) : null;
-    const rate = (actual!=null&&target>0) ? actual/target : null;
-    const color = rate==null?'#95a5a6':rate>=1?'#27ae60':rate>=0.7?'#e67e22':'#e74c3c';
+    const actS = curMon ? (curActuals[team]||0) : null;
+    const actC = curMon ? (curActualsC[team]||0) : 0;
+    const actTotal = actS!=null ? actS+actC : null;
+    const rate1 = (actS!=null&&target>0) ? actS/target : null;
+    const rate2 = (actTotal!=null&&target>0) ? actTotal/target : null;
+    const color2 = rate2==null?'#95a5a6':rate2>=1?'#27ae60':rate2>=0.7?'#e67e22':'#e74c3c';
     const teamColor = TEAM_COLORS[team]||'#1a3c5e';
     html+=`<div class="goal-card">
       <div class="team-name" style="color:${teamColor}">${team}</div>
-      <div style="font-size:11px;color:#7f8c8d;margin-bottom:6px">목표: ${fmt(target)}원</div>
-      <div class="progress-wrap"><div class="progress-bar" style="width:${rate!=null?Math.min(rate*100,100):0}%;background:${color}"></div></div>
+      <div style="font-size:11px;color:#7f8c8d;margin-bottom:4px">목표: ${fmt(target)}원</div>
+      ${actS!=null?`<div style="font-size:11px;margin-bottom:2px">실매출: <b>${fmt(actS)}원</b> <span style="color:${rate1>=1?'#27ae60':rate1>=0.7?'#e67e22':'#e74c3c'};font-weight:700">(${fmtPct(rate1)})</span></div>`:''}
+      ${actC?`<div style="font-size:11px;color:#27ae60;margin-bottom:2px">환산매출: ${fmt(actC)}원</div>`:''}
+      <div class="progress-wrap"><div class="progress-bar" style="width:${rate2!=null?Math.min(rate2*100,100):0}%;background:${color2}"></div></div>
       <div class="nums">
-        <span>실적: ${actual!=null?fmt(actual)+'원':'파일 업로드 필요'}</span>
-        <span style="color:${color};font-weight:700">${rate!=null?fmtPct(rate):'-%'}</span>
+        <span>합계: ${actTotal!=null?fmt(actTotal)+'원':'파일 업로드 필요'}</span>
+        <span style="color:${color2};font-weight:700">${rate2!=null?fmtPct(rate2):'-%'}</span>
       </div>
     </div>`;
   });
@@ -493,7 +504,7 @@ function renderGoalAchievement(){
     });
     html+=`<td class="num" style="font-weight:700">${fmt(targetTotal)}</td></tr>
 
-      <tr><td style="font-weight:600">실적</td>`;
+      <tr><td style="font-weight:600;color:#2980b9">① 실매출액</td>`;
     let actualTotal=0;
     MONTHS.forEach((_,mi)=>{
       const a=getActual(team,mi);
@@ -505,7 +516,7 @@ function renderGoalAchievement(){
     });
     html+=`<td class="num" style="font-weight:700">${actualTotal>0?fmt(actualTotal):'-'}</td></tr>
 
-      <tr><td style="font-weight:600">달성율</td>`;
+      <tr><td style="font-weight:600;color:#2980b9">달성율①</td>`;
     MONTHS.forEach((_,mi)=>{
       const t=MONTHLY_TARGETS[team]?.[mi]||0;
       const a=getActual(team,mi);
@@ -515,6 +526,44 @@ function renderGoalAchievement(){
       const isCurrent = curMon && mi===curMon-1;
       const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="text-center ${bgCls}"><span class="${cls}">${rate!=null?fmtPct(rate):'-'}</span></td>`;
+    });
+    html+=`<td></td></tr>
+
+      <tr><td style="font-weight:600;color:#27ae60">환산매출</td>`;
+    MONTHS.forEach((_,mi)=>{
+      // 환산매출: 현재달만 업로드 데이터에서, 과거는 데이터 없음
+      const isCurrent = curMon && mi===curMon-1;
+      const c = isCurrent ? (curActualsC[team]||0) : null;
+      const bgCls = isCurrent?'month-current':'month-future';
+      html+=`<td class="num ${bgCls}">${c!=null&&c>0?fmt(c):'-'}</td>`;
+    });
+    html+=`<td class="num">${curMon?(curActualsC[team]||0)>0?fmt(curActualsC[team]||0):'-':'-'}</td></tr>
+
+      <tr><td style="font-weight:600;color:#8e44ad">② 실매출+환산</td>`;
+    MONTHS.forEach((_,mi)=>{
+      const t=MONTHLY_TARGETS[team]?.[mi]||0;
+      const a=getActual(team,mi);
+      const isCurrent = curMon && mi===curMon-1;
+      const c = isCurrent ? (curActualsC[team]||0) : 0;
+      const total = a!=null ? a+c : null;
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
+      html+=`<td class="num ${bgCls}">${total!=null?fmt(total):'-'}</td>`;
+    });
+    html+=`<td></td></tr>
+
+      <tr><td style="font-weight:600;color:#8e44ad">달성율②</td>`;
+    MONTHS.forEach((_,mi)=>{
+      const t=MONTHLY_TARGETS[team]?.[mi]||0;
+      const a=getActual(team,mi);
+      const isCurrent = curMon && mi===curMon-1;
+      const c = isCurrent ? (curActualsC[team]||0) : 0;
+      const total = a!=null ? a+c : null;
+      const rate2 = (total!=null&&t>0)?total/t:null;
+      const cls2 = rate2==null?'':achieveColor(rate2);
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
+      html+=`<td class="text-center ${bgCls}"><span class="${cls2}">${rate2!=null?fmtPct(rate2):'-'}</span></td>`;
     });
     html+=`<td></td></tr>
     </table></div></div>`;
@@ -563,40 +612,44 @@ function renderTeamEmployee(){
   <div class="legend-bar">
     <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>공급가액</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>환산매출</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>영업수수료</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>예상수익</div>
   </div>
   <div class="section-title">📋 팀·사원별 매출 실적</div>
   <div class="table-wrap"><table>
-    <tr><th>팀명</th><th>사원명</th><th>건수</th>
+    <tr><th>팀명</th><th>사원명(담당자)</th><th>건수</th>
     <th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>합계</th>
-    <th>VAN/PG</th><th>영업수수료</th><th>구매비용</th><th>예상수익</th></tr>`;
+    <th>VAN/PG</th><th>구매비용</th><th>예상수익</th><th>수익률</th></tr>`;
 
-  let gS=0,gC=0,gV=0,gCom=0,gPur=0,gP=0,gCnt=0;
+  let gS=0,gC=0,gV=0,gPur=0,gP=0,gCnt=0;
   teamOrder.forEach(team=>{
     const tr=byTeam[team]||[]; if(!tr.length) return;
     const byP=groupBy(tr,'salesperson');
     const tS=sumBy(tr,'sales'),tC=sumBy(tr,'converted'),tV=sumBy(tr,'van');
-    const tCom=sumBy(tr,'commission'),tPur=sumBy(tr,'purchase'),tP=sumBy(tr,'profit');
-    gS+=tS;gC+=tC;gV+=tV;gCom+=tCom;gPur+=tPur;gP+=tP;gCnt+=tr.length;
+    const tPur=sumBy(tr,'purchase'),tP=sumBy(tr,'profit');
+    const tPR=(tS+tC)>0?tP/(tS+tC):0;
+    gS+=tS;gC+=tC;gV+=tV;gPur+=tPur;gP+=tP;gCnt+=tr.length;
     html+=`<tr class="subtotal" style="background:${TEAM_COLORS[team]}22">
       <td style="font-weight:700;color:${TEAM_COLORS[team]}">${team}</td>
       <td class="text-center">소계</td><td class="text-center">${tr.length}</td>
       <td class="num">${fmt(tS)}</td><td class="num">${fmt(tC)}</td><td class="num">${fmt(tS+tC)}</td>
-      <td class="num">${fmt(tV)}</td><td class="num">${fmt(tCom)}</td>
-      <td class="num">${fmt(tPur)}</td><td class="num">${fmt(tP)}</td>
+      <td class="num">${fmt(tV)}</td><td class="num">${fmt(tPur)}</td>
+      <td class="num">${fmt(tP)}</td><td class="text-center">${fmtPct(tPR)}</td>
     </tr>`;
     Object.entries(byP).sort((a,b)=>sumBy(b[1],'sales')+sumBy(b[1],'converted')-(sumBy(a[1],'sales')+sumBy(a[1],'converted'))).forEach(([person,pr])=>{
-      const pS=sumBy(pr,'sales'),pC=sumBy(pr,'converted'),pV=sumBy(pr,'van'),pCom=sumBy(pr,'commission'),pPur=sumBy(pr,'purchase'),pP=sumBy(pr,'profit');
+      if(!person) return;
+      const pS=sumBy(pr,'sales'),pC=sumBy(pr,'converted'),pV=sumBy(pr,'van'),pPur=sumBy(pr,'purchase'),pP=sumBy(pr,'profit');
+      const pPR=(pS+pC)>0?pP/(pS+pC):0;
       html+=`<tr><td></td><td class="text-left" style="color:${TEAM_COLORS[team]}">&nbsp;&nbsp;↳ ${person}</td>
         <td class="text-center">${pr.length}</td>
         <td class="num">${fmt(pS)}</td><td class="num">${fmt(pC)}</td><td class="num">${fmt(pS+pC)}</td>
-        <td class="num">${fmt(pV)}</td><td class="num">${fmt(pCom)}</td>
-        <td class="num">${fmt(pPur)}</td><td class="num">${fmt(pP)}</td></tr>`;
+        <td class="num">${fmt(pV)}</td><td class="num">${fmt(pPur)}</td>
+        <td class="num">${fmt(pP)}</td><td class="text-center">${fmtPct(pPR)}</td></tr>`;
     });
   });
+  const gPR=(gS+gC)>0?gP/(gS+gC):0;
   html+=`<tr class="total"><td colspan="2" class="text-center">총 합계</td><td class="text-center">${gCnt}</td>
     <td class="num">${fmt(gS)}</td><td class="num">${fmt(gC)}</td><td class="num">${fmt(gS+gC)}</td>
-    <td class="num">${fmt(gV)}</td><td class="num">${fmt(gCom)}</td><td class="num">${fmt(gPur)}</td><td class="num">${fmt(gP)}</td>
+    <td class="num">${fmt(gV)}</td><td class="num">${fmt(gPur)}</td><td class="num">${fmt(gP)}</td><td class="text-center">${fmtPct(gPR)}</td>
   </tr></table></div>
   <div class="section-title">사원별 공급가액 (상위 15명)</div>
   <div class="chart-card"><canvas id="ch-person-bar" style="max-height:320px"></canvas></div>`;
@@ -626,7 +679,7 @@ function renderProject(){
   const sorted=Object.entries(byProj).map(([p,r])=>({
     project:p,team:r[0].team,cnt:r.length,
     s:sumBy(r,'sales'),c:sumBy(r,'converted'),v:sumBy(r,'van'),
-    com:sumBy(r,'commission'),pur:sumBy(r,'purchase'),p:sumBy(r,'profit')
+    pur:sumBy(r,'purchase'),p:sumBy(r,'profit')
   })).sort((a,b)=>(b.s+b.c)-(a.s+a.c));
 
   let html=`
@@ -641,24 +694,27 @@ function renderProject(){
   <div class="table-wrap"><table id="proj-table">
     <tr><th>No.</th><th>팀명</th><th>프로젝트명</th><th>건수</th>
     <th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th>
-    <th>합계</th><th>VAN/PG</th><th>영업수수료</th><th>구매비용</th><th>예상수익</th></tr>`;
+    <th>합계</th><th>VAN/PG</th><th>구매비용</th><th>예상수익</th><th>수익률</th></tr>`;
 
   let no=1;
   sorted.forEach(x=>{
+    const pr=(x.s+x.c)>0?x.p/(x.s+x.c):0;
     html+=`<tr data-team="${x.team}">
       <td class="text-center">${no++}</td><td style="color:${TEAM_COLORS[x.team]||''};font-weight:600">${x.team}</td>
       <td>${x.project}</td><td class="text-center">${x.cnt}</td>
       <td class="num">${fmt(x.s)}</td><td class="num">${fmt(x.c)}</td><td class="num">${fmt(x.s+x.c)}</td>
-      <td class="num">${fmt(x.v)}</td><td class="num">${fmt(x.com)}</td>
-      <td class="num">${fmt(x.pur)}</td><td class="num">${fmt(x.p)}</td>
+      <td class="num">${fmt(x.v)}</td><td class="num">${fmt(x.pur)}</td>
+      <td class="num">${fmt(x.p)}</td><td class="text-center">${fmtPct(pr)}</td>
     </tr>`;
   });
+  const totS=sumBy(rows,'sales'),totC=sumBy(rows,'converted'),totV=sumBy(rows,'van'),totPur=sumBy(rows,'purchase'),totP=sumBy(rows,'profit');
+  const totPR=(totS+totC)>0?totP/(totS+totC):0;
   html+=`<tr class="total"><td colspan="3" class="text-center">합 계</td>
     <td class="text-center">${rows.length}</td>
-    <td class="num">${fmt(sumBy(rows,'sales'))}</td><td class="num">${fmt(sumBy(rows,'converted'))}</td>
-    <td class="num">${fmt(sumBy(rows,'sales')+sumBy(rows,'converted'))}</td>
-    <td class="num">${fmt(sumBy(rows,'van'))}</td><td class="num">${fmt(sumBy(rows,'commission'))}</td>
-    <td class="num">${fmt(sumBy(rows,'purchase'))}</td><td class="num">${fmt(sumBy(rows,'profit'))}</td>
+    <td class="num">${fmt(totS)}</td><td class="num">${fmt(totC)}</td>
+    <td class="num">${fmt(totS+totC)}</td>
+    <td class="num">${fmt(totV)}</td><td class="num">${fmt(totPur)}</td>
+    <td class="num">${fmt(totP)}</td><td class="text-center">${fmtPct(totPR)}</td>
   </tr></table></div>
   <div class="section-title">프로젝트 규모 차트 (상위 15개)</div>
   <div class="chart-card"><canvas id="ch-proj-bar" style="max-height:320px"></canvas></div>`;
@@ -800,7 +856,7 @@ function renderRawData(){
     <tr><th>상태</th><th>날짜</th><th>부서명</th><th>담당자</th><th>거래처명</th>
     <th>프로젝트명</th><th>솔루션명</th><th>품목명</th>
     <th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th>
-    <th>할부금액</th><th>영업수수료</th><th>VAN/PG</th><th>구매비용</th></tr>`;
+    <th>할부금액</th><th>VAN/PG</th><th>구매비용</th><th>예상수익</th><th>수익률</th></tr>`;
 
   rows.forEach(r=>{
     const c=TEAM_COLORS[r.team]||'#555';
@@ -811,8 +867,9 @@ function renderRawData(){
       <td>${r.salesperson}</td><td>${r.customer}</td><td>${r.project}</td>
       <td>${r.solution}</td><td style="max-width:150px;overflow:hidden;white-space:nowrap" title="${r.item}">${r.item}</td>
       <td class="num">${fmt(r.sales)}</td><td class="num">${fmt(r.converted)}</td>
-      <td class="num">${fmt(r.installment)}</td><td class="num">${fmt(r.commission)}</td>
-      <td class="num">${fmt(r.van)}</td><td class="num">${fmt(r.purchase)}</td>
+      <td class="num">${fmt(r.installment)}</td><td class="num">${fmt(r.van)}</td>
+      <td class="num">${fmt(r.purchase)}</td><td class="num">${fmt(r.profit)}</td>
+      <td class="text-center">${fmtPct(r.profitRate)}</td>
     </tr>`;
   });
   html+=`</table></div>`;
