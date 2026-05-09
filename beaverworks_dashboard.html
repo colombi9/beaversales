@@ -464,6 +464,13 @@ function renderGoalAchievement(){
   }
 
   // ── 이번 달 달성율 게이지 ──
+  function getActualC(team, monthIdx){
+    const confirmed = CONFIRMED_ACTUALS_C[team]?.[monthIdx];
+    if(confirmed!=null) return confirmed;
+    if(curMon && monthIdx===curMon-1) return curActualsC[team]||null;
+    return null;
+  }
+
   const displayMon = curMon || 5;
   let html=`
   <div class="section-title">🎯 ${displayMon}월 팀별 목표 달성율 현황</div>
