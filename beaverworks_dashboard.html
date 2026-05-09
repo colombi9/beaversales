@@ -524,7 +524,7 @@ function renderGoalAchievement(){
     MONTHS.forEach((_,mi)=>{
       const a=getActual(team,mi);
       if(a!=null) actualTotal+=a;
-      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null || CONFIRMED_ACTUALS_C[team]?.[mi]!=null;
       const isCurrent = curMon && mi===curMon-1;
       const cls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="num ${cls}">${a!=null?fmt(a):'-'}</td>`;
@@ -537,7 +537,7 @@ function renderGoalAchievement(){
       const a=getActual(team,mi);
       const rate = (a!=null&&t>0)?a/t:null;
       const cls = rate==null?'':achieveColor(rate);
-      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null || CONFIRMED_ACTUALS_C[team]?.[mi]!=null;
       const isCurrent = curMon && mi===curMon-1;
       const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="text-center ${bgCls}"><span class="${cls}">${rate!=null?fmtPct(rate):'-'}</span></td>`;
@@ -559,9 +559,9 @@ function renderGoalAchievement(){
       const t=MONTHLY_TARGETS[team]?.[mi]||0;
       const a=getActual(team,mi);
       const isCurrent = curMon && mi===curMon-1;
-      const c = isCurrent ? (curActualsC[team]||0) : 0;
-      const total = a!=null ? a+c : null;
-      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const c = getActualC(team,mi)||0;
+      const total = a!=null ? a+c : (c>0?c:null);
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null || CONFIRMED_ACTUALS_C[team]?.[mi]!=null;
       const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="num ${bgCls}">${total!=null?fmt(total):'-'}</td>`;
     });
@@ -572,11 +572,11 @@ function renderGoalAchievement(){
       const t=MONTHLY_TARGETS[team]?.[mi]||0;
       const a=getActual(team,mi);
       const isCurrent = curMon && mi===curMon-1;
-      const c = isCurrent ? (curActualsC[team]||0) : 0;
-      const total = a!=null ? a+c : null;
+      const c = getActualC(team,mi)||0;
+      const total = a!=null ? a+c : (c>0?c:null);
       const rate2 = (total!=null&&t>0)?total/t:null;
       const cls2 = rate2==null?'':achieveColor(rate2);
-      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null;
+      const isConfirmed = CONFIRMED_ACTUALS[team]?.[mi]!=null || CONFIRMED_ACTUALS_C[team]?.[mi]!=null;
       const bgCls = isConfirmed?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="text-center ${bgCls}"><span class="${cls2}">${rate2!=null?fmtPct(rate2):'-'}</span></td>`;
     });
