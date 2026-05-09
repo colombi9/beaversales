@@ -156,6 +156,14 @@ const CONFIRMED_ACTUALS = {
   '영업본부 전체':      [1109349000,934613000,835143000,882750000,null,null,null,null,null,null,null,null],
 };
 
+// 1~4월 확정 환산매술 실적 (원): F&B(행40)+리테일(행54) 합산, 천원x1000
+const CONFIRMED_ACTUALS_C = {
+  '사업개발실':         [75245000,64070000,60950000,161434000,null,null,null,null,null,null,null,null],
+  '전략영업팀':         [3800000,9900000,13600000,8292000,null,null,null,null,null,null,null,null],
+  'New Acquisition팀': [0,3600000,4500000,33876000,null,null,null,null,null,null,null,null],
+  '영업본부 전체':      [79045000,77570000,79050000,203602000,null,null,null,null,null,null,null,null],
+};
+
 const G = { rows:[], charts:{}, uploadedMonth:null };
 
 // ═══════════════════════════════════════════════════════════
@@ -464,7 +472,7 @@ function renderGoalAchievement(){
   [...MAIN_TEAMS,'영업본부 전체'].forEach(team=>{
     const target = MONTHLY_TARGETS[team]?.[displayMon-1]||0;
     const actS = curMon ? (curActuals[team]||0) : null;
-    const actC = curMon ? (curActualsC[team]||0) : 0;
+    const actC = getActualC(team, displayMon-1) || 0;
     const actTotal = actS!=null ? actS+actC : null;
     const rate1 = (actS!=null&&target>0) ? actS/target : null;
     const rate2 = (actTotal!=null&&target>0) ? actTotal/target : null;
@@ -533,8 +541,8 @@ function renderGoalAchievement(){
     MONTHS.forEach((_,mi)=>{
       // 환산매출: 현재달만 업로드 데이터에서, 과거는 데이터 없음
       const isCurrent = curMon && mi===curMon-1;
-      const c = isCurrent ? (curActualsC[team]||0) : null;
-      const bgCls = isCurrent?'month-current':'month-future';
+      const c = getActualC(team,mi);
+      const bgCls = (CONFIRMED_ACTUALS_C[team]?.[mi]!=null)?'month-confirmed':isCurrent?'month-current':'month-future';
       html+=`<td class="num ${bgCls}">${c!=null&&c>0?fmt(c):'-'}</td>`;
     });
     html+=`<td class="num">${curMon?(curActualsC[team]||0)>0?fmt(curActualsC[team]||0):'-':'-'}</td></tr>
