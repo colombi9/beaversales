@@ -267,10 +267,10 @@ function parseERPData(wb){
     const profit = sales + converted + van - purchase;
     const profitRate = (sales+converted) > 0 ? profit/(sales+converted) : 0;
 
-    // ── 담당자 소속 이동 (2026-06-22부터 이영훈·문성원 → 영업2실) ──
+    // ── 담당자 소속 이동 (이영훈·문성원: 5월까지→영업1실, 6월~→영업2실) ──
     const XFER_PERSONS = ['이영훈','문성원'];
-    const XFER_DATE   = '2026/06/22';
-    const finalTeam = (XFER_PERSONS.includes(salesperson) && dateStr >= XFER_DATE)
+    const dateMonth = dateStr ? parseInt(dateStr.split('/')[1]) : 0;
+    const finalTeam = (XFER_PERSONS.includes(salesperson) && dateMonth >= 6)
                       ? '영업2실' : team;
 
     result.push({
