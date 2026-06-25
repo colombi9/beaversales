@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🦫 비버웍스 영업본부 | 매출현황 대시보드 v2</title>
+<title>🦫 비버웍스 영업1실2실 | 매출현황 대시보드 v2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -98,7 +98,7 @@ tr.total td{background:#d5e8d4;font-weight:700;}
 </head>
 <body>
 <header>
-  <h1>🦫 비버웍스 영업본부 | 매출현황 대시보드</h1>
+  <h1>🦫 비버웍스 영업1실2실 | 매출현황 대시보드</h1>
   <div class="header-meta" id="hdr-info">파일을 업로드하면 분석 시작</div>
 </header>
 
@@ -143,21 +143,21 @@ const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','
 const MONTHLY_TARGETS = {
   '영업1실':    [808920000,779438000,939172000,1053597000,968852000,1018599000,1013835000,1059300000,1006868000,964599000,1005121000,775099000],
   '영업2실':    [323517000,367788000,1306886000,486490000,570477000,1377227000,669477000,638377000,1456127000,748377000,591277000,1446327000],
-  '영업1실2실': [1132437000,1147226000,2246058000,1540087000,1539329000,2395826000,1683312000,1697677000,2462995000,1712976000,1596398000,2221426000],
+  '영업1실2실합계': [1132437000,1147226000,2246058000,1540087000,1539329000,2395826000,1683312000,1697677000,2462995000,1712976000,1596398000,2221426000],
 };
 
 // ── 1~4월 확정 실적 (원 단위) ── 출처: 26년 목표 파일 실판매매출 기준 (천원×1000)
 const CONFIRMED_ACTUALS = {
   '영업1실':    [832500000,695589000,485188000,724225000,null,null,null,null,null,null,null,null],
   '영업2실':    [276849000,240024000,316955000,236133000,null,null,null,null,null,null,null,null],
-  '영업1실2실': [1109349000,934613000,835143000,960358000,null,null,null,null,null,null,null,null],
+  '영업1실2실합계': [1109349000,934613000,835143000,960358000,null,null,null,null,null,null,null,null],
 };
 
 // 1~4월 확정 환산매술 실적 (원): F&B(행40)+리테일(행54) 합산, 천원x1000
 const CONFIRMED_ACTUALS_C = {
   '영업1실':    [75245000,64070000,60950000,161434000,null,null,null,null,null,null,null,null],
   '영업2실':    [3800000,13500000,18100000,42096000,null,null,null,null,null,null,null,null],
-  '영업1실2실': [79045000,77570000,79050000,203530000,null,null,null,null,null,null,null,null],
+  '영업1실2실합계': [79045000,77570000,79050000,203530000,null,null,null,null,null,null,null,null],
 };
 
 const G = { rows:[], charts:{}, uploadedMonth:null };
@@ -450,8 +450,8 @@ function renderGoalAchievement(){
       curActuals[t]  = sumBy(getTeamRows(t),'sales');
       curActualsC[t] = sumBy(getTeamRows(t),'converted');
     });
-    curActuals['영업1실2실']  = Object.values(curActuals).reduce((s,v)=>s+v,0);
-    curActualsC['영업1실2실'] = Object.values(curActualsC).reduce((s,v)=>s+v,0);
+    curActuals['영업1실2실합계']  = Object.values(curActuals).reduce((s,v)=>s+v,0);
+    curActualsC['영업1실2실합계'] = Object.values(curActualsC).reduce((s,v)=>s+v,0);
   }
 
   // 각 팀·월 실적 취합 (confirmed + current)
@@ -475,7 +475,7 @@ function renderGoalAchievement(){
   <div class="section-title">🎯 ${displayMon}월 팀별 목표 달성율 현황</div>
   <div class="goal-grid">`;
 
-  [...MAIN_TEAMS,'영업1실2실'].forEach(team=>{
+  [...MAIN_TEAMS,'영업1실2실합계'].forEach(team=>{
     const target = MONTHLY_TARGETS[team]?.[displayMon-1]||0;
     const actS = curMon ? (curActuals[team]||0) : null;
     const actC = getActualC(team, displayMon-1) || 0;
@@ -501,7 +501,7 @@ function renderGoalAchievement(){
   // ── 연간 월별 목표 vs 실적 테이블 ──
   html+=`<div class="section-title">📊 2026년 연간 목표 대비 실적 현황 (단위: 원)</div>`;
 
-  [...MAIN_TEAMS,'영업1실2실'].forEach(team=>{
+  [...MAIN_TEAMS,'영업1실2실합계'].forEach(team=>{
     const teamColor = TEAM_COLORS[team]||'#1a3c5e';
     html+=`<div style="margin-bottom:16px">
     <div style="font-weight:700;color:${teamColor};margin-bottom:6px;font-size:13px">${team}</div>
@@ -777,15 +777,14 @@ function renderDailyWeekly(){
       s:sumBy(dr,'sales'),c:sumBy(dr,'converted'),v:sumBy(dr,'van'),p:sumBy(dr,'profit'),teams:teamS};
   });
 
-  const na='New Acquisition팀', st='전략영업팀', bd='사업개발실';
+  const r1='영업1실', r2='영업2실';
   let html=`
   <div class="section-title">📅 일별 매출현황</div>
   <div class="table-wrap"><table>
     <tr><th>날짜</th><th>주차</th><th>요일</th><th>건수</th>
     <th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>VAN/PG</th><th>예상수익</th>
-    <th style="background:#2980b9">NA팀 매출</th><th style="background:#16a085">NA팀 환산</th>
-    <th style="background:#e67e22">전략팀 매출</th><th style="background:#c0392b">전략팀 환산</th>
-    <th style="background:#27ae60">사업개발 매출</th><th style="background:#1abc9c">사업개발 환산</th>
+    <th style="background:#27ae60">영업1실 매출</th><th style="background:#1abc9c">영업1실 환산</th>
+    <th style="background:#e67e22">영업2실 매출</th><th style="background:#c0392b">영업2실 환산</th>
     </tr>`;
 
   let totS=0,totC=0,totV=0,totP=0;
@@ -796,16 +795,15 @@ function renderDailyWeekly(){
       <td class="text-center">${d.day}</td><td class="text-center">${d.cnt}</td>
       <td class="num">${fmt(d.s)}</td><td class="num">${fmt(d.c)}</td>
       <td class="num">${fmt(d.v)}</td><td class="num">${fmt(d.p)}</td>
-      <td class="num">${fmt(d.teams[na].s)}</td><td class="num">${fmt(d.teams[na].c)}</td>
-      <td class="num">${fmt(d.teams[st].s)}</td><td class="num">${fmt(d.teams[st].c)}</td>
-      <td class="num">${fmt(d.teams[bd].s)}</td><td class="num">${fmt(d.teams[bd].c)}</td>
+      <td class="num">${fmt(d.teams[r1]?.s||0)}</td><td class="num">${fmt(d.teams[r1]?.c||0)}</td>
+      <td class="num">${fmt(d.teams[r2]?.s||0)}</td><td class="num">${fmt(d.teams[r2]?.c||0)}</td>
     </tr>`;
   });
   html+=`<tr class="total"><td colspan="3" class="text-center">합 계</td>
     <td class="text-center">${rows.length}</td>
     <td class="num">${fmt(totS)}</td><td class="num">${fmt(totC)}</td>
     <td class="num">${fmt(totV)}</td><td class="num">${fmt(totP)}</td>
-    <td colspan="6"></td></tr></table></div>
+    <td colspan="4"></td></tr></table></div>
 
   <div class="section-title">📅 주차별 매출현황</div>
   <div class="table-wrap"><table>
