@@ -131,37 +131,33 @@ tr.total td{background:#d5e8d4;font-weight:700;}
 // ═══════════════════════════════════════════════════════════
 // 상수 & 설정
 // ═══════════════════════════════════════════════════════════
-const MAIN_TEAMS = ['New Acquisition팀','전략영업팀','사업개발실'];
+const MAIN_TEAMS = ['영업1실','영업2실'];
 const TEAM_COLORS = {
-  'New Acquisition팀':'#2980b9',
-  '전략영업팀':'#e67e22',
-  '사업개발실':'#27ae60',
+  '영업1실':'#27ae60',
+  '영업2실':'#e67e22',
 };
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
 // ── 팀별 월간 목표 (원 단위) ── 출처: 26년 영업본부 팀별 목표_251218
 // 사업개발실 = F&B영업 + 리테일영업 합산
 const MONTHLY_TARGETS = {
-  '사업개발실':         [808920000,779438000,939172000,1053597000,968852000,1018599000,1013835000,1059300000,1006868000,964599000,1005121000,775099000],
-  '전략영업팀':         [303517000,322788000,1216886000,371490000,420477000,1192227000,449477000,403377000,1221127000,438377000,381277000,1236327000],
-  'New Acquisition팀': [20000000,45000000,90000000,115000000,150000000,185000000,220000000,235000000,235000000,310000000,210000000,210000000],
-  '영업본부 전체':      [1132437000,1147226000,2246058000,1540087000,1539329000,2395826000,1683312000,1697677000,2462995000,1712976000,1596398000,2221426000],
+  '영업1실':    [808920000,779438000,939172000,1053597000,968852000,1018599000,1013835000,1059300000,1006868000,964599000,1005121000,775099000],
+  '영업2실':    [323517000,367788000,1306886000,486490000,570477000,1377227000,669477000,638377000,1456127000,748377000,591277000,1446327000],
+  '영업1실2실': [1132437000,1147226000,2246058000,1540087000,1539329000,2395826000,1683312000,1697677000,2462995000,1712976000,1596398000,2221426000],
 };
 
 // ── 1~4월 확정 실적 (원 단위) ── 출처: 26년 목표 파일 실판매매출 기준 (천원×1000)
 const CONFIRMED_ACTUALS = {
-  '사업개발실':         [832500000,695589000,485188000,724225000,null,null,null,null,null,null,null,null],
-  '전략영업팀':         [222381000,227071000,272174000,179838000,null,null,null,null,null,null,null,null],
-  'New Acquisition팀': [54468000,12953000,44781000,56295000,null,null,null,null,null,null,null,null],
-  '영업본부 전체':      [1109349000,934613000,835143000,960358000,null,null,null,null,null,null,null,null],
+  '영업1실':    [832500000,695589000,485188000,724225000,null,null,null,null,null,null,null,null],
+  '영업2실':    [276849000,240024000,316955000,236133000,null,null,null,null,null,null,null,null],
+  '영업1실2실': [1109349000,934613000,835143000,960358000,null,null,null,null,null,null,null,null],
 };
 
 // 1~4월 확정 환산매술 실적 (원): F&B(행40)+리테일(행54) 합산, 천원x1000
 const CONFIRMED_ACTUALS_C = {
-  '사업개발실':         [75245000,64070000,60950000,161434000,null,null,null,null,null,null,null,null],
-  '전략영업팀':         [3800000,9900000,13600000,8220000,null,null,null,null,null,null,null,null],
-  'New Acquisition팀': [0,3600000,4500000,33876000,null,null,null,null,null,null,null,null],
-  '영업본부 전체':      [79045000,77570000,79050000,203530000,null,null,null,null,null,null,null,null],
+  '영업1실':    [75245000,64070000,60950000,161434000,null,null,null,null,null,null,null,null],
+  '영업2실':    [3800000,13500000,18100000,42096000,null,null,null,null,null,null,null,null],
+  '영업1실2실': [79045000,77570000,79050000,203530000,null,null,null,null,null,null,null,null],
 };
 
 const G = { rows:[], charts:{}, uploadedMonth:null };
@@ -196,7 +192,7 @@ function handleFile(input){
     try{
       const wb = XLSX.read(e.target.result, {type:'binary'});
       G.rows = parseERPData(wb);
-      if(G.rows.length===0){ alert('3개 팀(사업개발실/New Acquisition팀/전략영업팀) 데이터가 없습니다.'); return; }
+      if(G.rows.length===0){ alert('2개 영업실(영업1실/영업2실) 데이터가 없습니다. 부서명을 확인해 주세요.'); return; }
       // 업로드된 파일의 월 감지
       const dates = G.rows.map(r=>r.dateStr).filter(Boolean);
       if(dates.length){
@@ -204,7 +200,7 @@ function handleFile(input){
         const parts = sample.split('/');
         G.uploadedMonth = parts.length>=2 ? parseInt(parts[1]) : null;
       }
-      document.getElementById('file-status').textContent = `✅ ${file.name} 로드 완료 (3개팀 ${G.rows.length}건${G.uploadedMonth?' | '+G.uploadedMonth+'월 데이터':''})`;
+      document.getElementById('file-status').textContent = `✅ ${file.name} 로드 완료 (2개 영업실 ${G.rows.length}건${G.uploadedMonth?' | '+G.uploadedMonth+'월 데이터':''})`;
       document.getElementById('hdr-info').textContent = file.name + (G.uploadedMonth?' | '+G.uploadedMonth+'월':'');
       Object.values(G.charts).forEach(c=>c&&c.destroy&&c.destroy());
       G.charts = {};
@@ -237,7 +233,10 @@ function parseERPData(wb){
   const result = [];
   for(let i=hdrRow+1;i<raw.length;i++){
     const row = raw[i];
-    const team = String(row[ci['부서명']]||'').trim();
+    const teamRaw = String(row[ci['부서명']]||'').trim();
+    // 구 부서명 → 신 부서명 매핑 (2026-06-22 조직개편)
+    const TEAM_MAP = {'사업개발실':'영업1실','전략영업팀':'영업2실','New Acquisition팀':'영업2실'};
+    const team = TEAM_MAP[teamRaw] || teamRaw;
     if(!team||!MAIN_TEAMS.includes(team)) continue;
 
     let dateStr='', salesperson='', sales=0, converted=0, van=0, purchase=0, installment=0;
@@ -322,7 +321,7 @@ function renderDashboard(){
     <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>VAN/PG 수익</div>
     <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>예상수익</div>
   </div>
-  <div class="section-title">📌 전체 핵심 KPI (영업 3팀 합산)</div>
+  <div class="section-title">📌 전체 핵심 KPI (영업1실+영업2실 합산)</div>
   <div class="kpi-grid">
     <div class="kpi-card blue"><div class="lbl">💰 공급가액 합계</div><div class="val">${fmt(totalS)}원</div><div class="sub">VAT 제외 매출</div></div>
     <div class="kpi-card green"><div class="lbl">🔄 환산매출 합계</div><div class="val">${fmt(totalC)}원</div><div class="sub">구독·렌탈 환산</div></div>
@@ -330,10 +329,10 @@ function renderDashboard(){
     <div class="kpi-card red"><div class="lbl">🛒 구매/투자 합계</div><div class="val">${fmt(totalPur)}원</div><div class="sub">원가 합계</div></div>
     <div class="kpi-card teal"><div class="lbl">📈 예상수익</div><div class="val">${fmt(totalProfit)}원</div><div class="sub">합계+VAN-구매 / ${fmtPct(avgProfitRate)}</div></div>
     <div class="kpi-card"><div class="lbl">💳 할부금액 합계</div><div class="val">${fmt(totalIns)}원</div><div class="sub">할부 매출</div></div>
-    <div class="kpi-card"><div class="lbl">📦 총 계약 건수</div><div class="val">${cnt.toLocaleString()}건</div><div class="sub">영업 3팀</div></div>
+    <div class="kpi-card"><div class="lbl">📦 총 계약 건수</div><div class="val">${cnt.toLocaleString()}건</div><div class="sub">영업 2실</div></div>
   </div>
 
-  <div class="section-title">① 영업 3팀 핵심실적 비교</div>
+  <div class="section-title">① 영업 2실 핵심실적 비교</div>
   <div class="kpi-grid">`;
 
   MAIN_TEAMS.forEach(team=>{
@@ -351,7 +350,7 @@ function renderDashboard(){
 
   <div class="section-title">② 팀별 매출 차트</div>
   <div class="chart-grid">
-    <div class="chart-card"><h3>팀별 공급가액 vs 환산매출 (영업 3팀)</h3><canvas id="ch-team-bar"></canvas></div>
+    <div class="chart-card"><h3>영업실별 공급가액 vs 환산매출 (영업 2실)</h3><canvas id="ch-team-bar"></canvas></div>
     <div class="chart-card"><h3>매출 구성 비율</h3><canvas id="ch-pie"></canvas></div>
   </div>
   <div class="chart-grid">
@@ -451,8 +450,8 @@ function renderGoalAchievement(){
       curActuals[t]  = sumBy(getTeamRows(t),'sales');
       curActualsC[t] = sumBy(getTeamRows(t),'converted');
     });
-    curActuals['영업본부 전체']  = Object.values(curActuals).reduce((s,v)=>s+v,0);
-    curActualsC['영업본부 전체'] = Object.values(curActualsC).reduce((s,v)=>s+v,0);
+    curActuals['영업1실2실']  = Object.values(curActuals).reduce((s,v)=>s+v,0);
+    curActualsC['영업1실2실'] = Object.values(curActualsC).reduce((s,v)=>s+v,0);
   }
 
   // 각 팀·월 실적 취합 (confirmed + current)
@@ -476,7 +475,7 @@ function renderGoalAchievement(){
   <div class="section-title">🎯 ${displayMon}월 팀별 목표 달성율 현황</div>
   <div class="goal-grid">`;
 
-  [...MAIN_TEAMS,'영업본부 전체'].forEach(team=>{
+  [...MAIN_TEAMS,'영업1실2실'].forEach(team=>{
     const target = MONTHLY_TARGETS[team]?.[displayMon-1]||0;
     const actS = curMon ? (curActuals[team]||0) : null;
     const actC = getActualC(team, displayMon-1) || 0;
@@ -502,7 +501,7 @@ function renderGoalAchievement(){
   // ── 연간 월별 목표 vs 실적 테이블 ──
   html+=`<div class="section-title">📊 2026년 연간 목표 대비 실적 현황 (단위: 원)</div>`;
 
-  [...MAIN_TEAMS,'영업본부 전체'].forEach(team=>{
+  [...MAIN_TEAMS,'영업1실2실'].forEach(team=>{
     const teamColor = TEAM_COLORS[team]||'#1a3c5e';
     html+=`<div style="margin-bottom:16px">
     <div style="font-weight:700;color:${teamColor};margin-bottom:6px;font-size:13px">${team}</div>
@@ -629,7 +628,7 @@ function renderTeamEmployee(){
     <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>환산매출</div>
     <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>예상수익</div>
   </div>
-  <div class="section-title">📋 팀·사원별 매출 실적</div>
+  <div class="section-title">📋 영업실·사원별 매출 실적</div>
   <div class="table-wrap"><table>
     <tr><th>팀명</th><th>사원명(담당자)</th><th>건수</th>
     <th class="blue-hdr">공급가액</th><th class="green-hdr">환산매출</th><th>합계</th>
