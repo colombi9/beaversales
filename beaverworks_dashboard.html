@@ -267,9 +267,15 @@ function parseERPData(wb){
     const profit = sales + converted + van - purchase;
     const profitRate = (sales+converted) > 0 ? profit/(sales+converted) : 0;
 
+    // ── 담당자 소속 이동 (2026-06-22부터 이영훈·문성원 → 영업2실) ──
+    const XFER_PERSONS = ['이영훈','문성원'];
+    const XFER_DATE   = '2026/06/22';
+    const finalTeam = (XFER_PERSONS.includes(salesperson) && dateStr >= XFER_DATE)
+                      ? '영업2실' : team;
+
     result.push({
       status: String(row[ci['상태']||ci['진행상태']]||'').trim(),
-      dateStr, salesperson, team,
+      dateStr, salesperson, team:finalTeam,
       customer: String(row[ci['거래처명']]||'').trim(),
       project: String(row[ci['프로젝트명']]||'').trim(),
       solution: String(row[ci['솔루션명']]||'').trim(),
