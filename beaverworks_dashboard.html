@@ -150,7 +150,7 @@ const MONTHLY_TARGETS = {
 const CONFIRMED_ACTUALS = {
   '영업1실':    [832500000,695589000,485188000,724225000,465591784,null,null,null,null,null,null,null],
   '영업2실':    [276849000,240024000,316955000,236133000,160035000,null,null,null,null,null,null,null],
-  '영업1실2실합계': [1109349000,934613000,835143000,960358000,625626784,null,null,null,null,null,null,null],
+  '영업1실2실합계': [1109349000,935613000,802143000,960358000,625626784,null,null,null,null,null,null,null],
 };
 
 // 1~4월 확정 환산매술 실적 (원): F&B(행40)+리테일(행54) 합산, 천원x1000
@@ -461,7 +461,12 @@ function renderGoalAchievement(){
   }
 
   // 각 팀·월 실적 취합 (confirmed + current)
+  // 영업1실2실합계는 항상 영업1실+영업2실 합산으로 자동 계산
   function getActual(team, monthIdx){
+    if(team==='영업1실2실합계'){
+      const a1=getActual('영업1실',monthIdx), a2=getActual('영업2실',monthIdx);
+      return (a1==null&&a2==null)?null:(a1||0)+(a2||0);
+    }
     const confirmed = CONFIRMED_ACTUALS[team]?.[monthIdx];
     if(confirmed!=null) return confirmed;
     if(curMon && monthIdx===curMon-1) return curActuals[team]||null;
@@ -470,6 +475,10 @@ function renderGoalAchievement(){
 
   // ── 이번 달 달성율 게이지 ──
   function getActualC(team, monthIdx){
+    if(team==='영업1실2실합계'){
+      const c1=getActualC('영업1실',monthIdx), c2=getActualC('영업2실',monthIdx);
+      return (c1==null&&c2==null)?null:(c1||0)+(c2||0);
+    }
     const confirmed = CONFIRMED_ACTUALS_C[team]?.[monthIdx];
     if(confirmed!=null) return confirmed;
     if(curMon && monthIdx===curMon-1) return curActualsC[team]||null;
