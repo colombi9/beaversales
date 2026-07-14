@@ -148,15 +148,15 @@ const MONTHLY_TARGETS = {
 
 // ── 1~4월 확정 실적 (원 단위) ── 출처: 26년 목표 파일 실판매매출 기준 (천원×1000)
 const CONFIRMED_ACTUALS = {
-  '영업1실':    [832500000,695589000,485188000,724225000,465591784,null,null,null,null,null,null,null],
-  '영업2실':    [276849000,240024000,316955000,236133000,160035000,null,null,null,null,null,null,null],
+  '영업1실':    [832500000,695589000,485188000,724225000,465591784,411811887,null,null,null,null,null,null],
+  '영업2실':    [276849000,240024000,316955000,236133000,160035000,1100630000,null,null,null,null,null,null],
   '영업1실2실합계': [1109349000,935613000,802143000,960358000,625626784,null,null,null,null,null,null,null],
 };
 
 // 1~4월 확정 환산매술 실적 (원): F&B(행40)+리테일(행54) 합산, 천원x1000
 const CONFIRMED_ACTUALS_C = {
-  '영업1실':    [75245000,64070000,60950000,161434000,73652000,null,null,null,null,null,null,null],
-  '영업2실':    [3800000,13500000,18100000,42096000,25476000,null,null,null,null,null,null,null],
+  '영업1실':    [75245000,64070000,60950000,161434000,73652000,33692000,null,null,null,null,null,null],
+  '영업2실':    [3800000,13500000,18100000,42096000,25476000,58326000,null,null,null,null,null,null],
   '영업1실2실합계': [79045000,77570000,79050000,203530000,99128000,null,null,null,null,null,null,null],
 };
 
@@ -356,12 +356,12 @@ function renderDashboard(){
 
   <div class="section-title">② 팀별 매출 차트</div>
   <div class="chart-grid">
-    <div class="chart-card"><h3>영업실별 공급가액 vs 환산매출 (영업 2실)</h3><canvas id="ch-team-bar"></canvas></div>
-    <div class="chart-card"><h3>매출 구성 비율</h3><canvas id="ch-pie"></canvas></div>
+    <div class="chart-card" style="height:320px"><h3>영업실별 공급가액 vs 환산매출 (영업 2실)</h3><canvas id="ch-team-bar" style="height:260px"></canvas></div>
+    <div class="chart-card" style="height:320px"><h3>매출 구성 비율</h3><canvas id="ch-pie" style="height:260px"></canvas></div>
   </div>
   <div class="chart-grid">
-    <div class="chart-card"><h3>솔루션별 공급가액</h3><canvas id="ch-solution"></canvas></div>
-    <div class="chart-card"><h3>진행상태별 건수</h3><canvas id="ch-status"></canvas></div>
+    <div class="chart-card" style="height:320px"><h3>솔루션별 공급가액</h3><canvas id="ch-solution" style="height:260px"></canvas></div>
+    <div class="chart-card" style="height:320px"><h3>진행상태별 건수</h3><canvas id="ch-status" style="height:260px"></canvas></div>
   </div>`;
 
   // 진행상태별 현황
@@ -409,7 +409,7 @@ function renderDashboard(){
           {label:'환산매출',data:MAIN_TEAMS.map(t=>sumBy(getTeamRows(t),'converted')),backgroundColor:'#27ae60cc',borderColor:'#27ae60',borderWidth:1},
         ]
       },
-      options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'}}}}
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'}}}}
     });
     // 파이
     G.charts.pie=new Chart(document.getElementById('ch-pie'),{
@@ -418,7 +418,7 @@ function renderDashboard(){
         labels:['공급가액','환산매출','VAN/PG수익'],
         datasets:[{data:[totalS,totalC,totalV],backgroundColor:['#2980b9','#27ae60','#e67e22']}]
       },
-      options:{responsive:true,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.raw)+'원'}}}}
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.raw)+'원'}}}}
     });
     // 솔루션별
     const solEntries=Object.entries(groupBy(rows,'solution')).sort((a,b)=>sumBy(b[1],'sales')-sumBy(a[1],'sales')).slice(0,8);
@@ -428,7 +428,7 @@ function renderDashboard(){
         labels:solEntries.map(([s])=>s||'기타'),
         datasets:[{label:'공급가액',data:solEntries.map(([,r])=>sumBy(r,'sales')),backgroundColor:'#16a085cc'}]
       },
-      options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'}}}}
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'}}}}
     });
     // 상태별
     const statusG=groupBy(rows,'status');
@@ -438,7 +438,7 @@ function renderDashboard(){
         labels:Object.keys(statusG),
         datasets:[{data:Object.values(statusG).map(r=>r.length),backgroundColor:['#f39c12','#2980b9','#27ae60','#8e44ad']}]
       },
-      options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
     });
   },50);
 }
